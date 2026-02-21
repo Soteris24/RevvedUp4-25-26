@@ -1,7 +1,6 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
 import com.bylazar.telemetry.PanelsTelemetry;
-
 import org.firstinspires.ftc.teamcode.RobotHardware;
 
 public class Drivetrain {
@@ -13,25 +12,23 @@ public class Drivetrain {
         this.hw = hw;
         this.telemetryOn = telemetryOn;
     }
+
     public void drive(double y, double x, double rx) {
-        double angle = Math.atan2(y,x);
-        double power = Math.hypot(x, y);
+        // =========================
+        // DRIVE
+        // =========================
+        double lf = y + x + rx;
+        double lb = y - x + rx;
+        double rf = y - x - rx;
+        double rb = y + x - rx;
 
-        double sin = Math.sin(angle + Math.PI/4);
-        double cos = -Math.cos(angle + Math.PI/4);
-        double max = Math.max(Math.abs(sin), Math.abs(cos));
-
-        double lf = (sin * power) / max + rx;
-        double lb = (cos * power) / max + rx;
-        double rf = (cos * power) / max - rx;
-        double rb = (sin * power) / max - rx;
-
-        double maxPower = Math.max(Math.abs(lf), Math.max(Math.abs(lb), Math.max(Math.abs(rf), Math.abs(rb))));
-        if (maxPower > 1.0) {
-            lf /= maxPower;
-            lb /= maxPower;
-            rf /= maxPower;
-            rb /= maxPower;
+        // Cap powers to [-1, 1]
+        double max = Math.max(Math.abs(lf), Math.max(Math.abs(lb), Math.max(Math.abs(rf), Math.abs(rb))));
+        if (max > 1.0) {
+            lf /= max;
+            lb /= max;
+            rf /= max;
+            rb /= max;
         }
 
         hw.leftFront.setPower(lf);
@@ -45,6 +42,35 @@ public class Drivetrain {
             panelsTelemetry.getTelemetry().addData("RF", rf);
             panelsTelemetry.getTelemetry().addData("RB", rb);
         }
+
+        /* =========================
+        // ORIGINAL DRIVE CODE
+
+        double angle = Math.atan2(y,x);
+        double power = Math.hypot(x, y);
+
+        double sin = Math.sin(angle + Math.PI/4);
+        double cos = -Math.cos(angle + Math.PI/4);
+        double maxOrig = Math.max(Math.abs(sin), Math.abs(cos));
+
+        double lfOrig = (sin * power) / maxOrig + rx;
+        double lbOrig = (cos * power) / maxOrig + rx;
+        double rfOrig = (cos * power) / maxOrig - rx;
+        double rbOrig = (sin * power) / maxOrig - rx;
+
+        double maxPower = Math.max(Math.abs(lfOrig), Math.max(Math.abs(lbOrig), Math.max(Math.abs(rfOrig), Math.abs(rbOrig))));
+        if (maxPower > 1.0) {
+            lfOrig /= maxPower;
+            lbOrig /= maxPower;
+            rfOrig /= maxPower;
+            rbOrig /= maxPower;
+        }
+
+        hw.leftFront.setPower(lfOrig);
+        hw.leftBack.setPower(lbOrig);
+        hw.rightFront.setPower(rfOrig);
+        hw.rightBack.setPower(rbOrig);
+        */
     }
 
     public void setMotorPowers(double lf, double lb, double rf, double rb) {
@@ -57,6 +83,4 @@ public class Drivetrain {
     public void stop() {
         setMotorPowers(0, 0, 0, 0);
     }
-
 }
-

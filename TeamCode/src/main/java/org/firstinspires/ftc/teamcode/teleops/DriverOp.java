@@ -58,17 +58,6 @@ public class DriverOp extends LinearOpMode {
             double rotInput = artifactSystem.isActivelyShooting() ? rx / 3.0 : rx;
             drivetrain.drive(y, x, rotInput);
 
-            // --- ArtifactSystem ---
-            // gamepad2 map:
-            //   dpad_up    — enter SHOOT (long) from intake / bump RPM up in shoot
-            //   dpad_down  — bump RPM down in shoot
-            //   dpad_left  — enter SHOOT (short) from intake
-            //   dpad_right — exit SHOOT / MANUAL → INTAKE
-            //   left_bumper  INTAKE: manual GREEN detect   |  SHOOT: fire GREEN
-            //   right_bumper INTAKE: manual PURPLE detect  |  SHOOT: fire PURPLE
-            //   left_trigger  INTAKE: cycle to next GREEN slot  | MANUAL: rotate left
-            //   right_trigger INTAKE: cycle to next PURPLE slot | MANUAL: rotate right
-            //   y — toggle intake on/off
             artifactSystem.update(
                     gamepad2.dpad_up,
                     gamepad2.dpad_down,
@@ -84,7 +73,7 @@ public class DriverOp extends LinearOpMode {
                     currentTime
             );
 
-            // Sorter PID must be called every loop
+            // Sorter PID
             sorter.update();
         }
 

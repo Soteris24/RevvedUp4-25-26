@@ -18,8 +18,8 @@ public class ManualOp extends LinearOpMode {
     Sorter sorter1;
     Shooter2 shooter;
     Intake intake;
-    public static int ShooterFarRPM = 3000;
-    public static int ShooterCloseRPM = 2000;
+    public static int ShooterFarRPM = 2700;
+    public static int ShooterCloseRPM = 2100;
 
     private boolean lastY = false;
     private boolean intakeOn = false;

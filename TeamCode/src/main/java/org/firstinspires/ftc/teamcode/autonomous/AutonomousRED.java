@@ -443,7 +443,7 @@ public class AutonomousRED extends LinearOpMode {
 
             // Return to home if offset was applied
             if (artifactSorter.offSetApplied) {
-                sorter.moveDegrees(75);
+                sorter.moveDegrees(60);
             } else {
                 // Already home
                 returningHome = false;
