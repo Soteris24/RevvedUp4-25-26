@@ -40,9 +40,9 @@ public class AutonomousRED extends LinearOpMode {
     // POSITIONS
     private final Pose startPose = new Pose(0, 0, Math.toRadians(45));
     private final Pose shootingPose = new Pose(-30, -30, Math.toRadians(45));
-    private final Pose pos1 = new Pose(-19.3, -36.8, Math.toRadians(0));
+    private final Pose pos1 = new Pose(-25, -36.8, Math.toRadians(0));
     private final Pose pos1Forward = new Pose(-2.3, -36.8, Math.toRadians(0));
-    private final Pose pos2 = new Pose(-19.3, -61, Math.toRadians(0));
+    private final Pose pos2 = new Pose(-25, -61, Math.toRadians(0));
     private final Pose pos2Forward = new Pose(-2.3, -61, Math.toRadians(0));
 
     // Movement tracking
