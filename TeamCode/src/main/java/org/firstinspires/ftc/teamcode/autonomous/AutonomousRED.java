@@ -18,8 +18,8 @@ import com.pedropathing.paths.PathChain;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 
-@Autonomous(name = "AutoOPtest")
-public class testt extends LinearOpMode {
+@Autonomous(name = "Autonomous RED")
+public class AutonomousRED extends LinearOpMode {
 
     // Hardware and subsystems
     RobotHardware hw;
@@ -381,11 +381,11 @@ public class testt extends LinearOpMode {
 
             // Move forward to pos forward
             if (currentCycle == 1) {
-                follower.setMaxPower(0.2);
+                follower.setMaxPower(0.4);
                 goToPose(pos1Forward, "constant");
                 telemetry.addData("Status", "pos1 collecting");
             } else if (currentCycle == 2) {
-                follower.setMaxPower(0.2);
+                follower.setMaxPower(0.4);
                 goToPose(pos2Forward, "constant");
                 telemetry.addData("Status", "pos2 collecting");
             }

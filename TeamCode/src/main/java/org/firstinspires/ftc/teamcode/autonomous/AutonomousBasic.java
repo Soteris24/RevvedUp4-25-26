@@ -12,7 +12,7 @@ import org.firstinspires.ftc.teamcode.subsystems.Shooter2;
 import org.firstinspires.ftc.teamcode.subsystems.Sorter;
 import org.firstinspires.ftc.teamcode.subsystems.StateMachine;
 
-@Autonomous(name = "AutonomousOp")
+@Autonomous(name = "Autonomous Basic")
 public class AutonomousBasic extends LinearOpMode {
 
     // Hardware and subsystems

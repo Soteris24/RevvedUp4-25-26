@@ -10,12 +10,11 @@ import java.util.Arrays;
 import java.util.Objects;
 
 /**
- * ArtifactSystem — merged StateMachine + ArtifactSorter
- *
  * ======================== BUTTON MAP (gamepad2) ========================
  *
  * INTAKE STATE:
  *   Y                  — toggle intake on/off
+ *   X                  - reverse intake for 0.5 secs
  *   left_bumper        — manual GREEN  detect (mark current ball as G)
  *   right_bumper       — manual PURPLE detect (mark current ball as P)
  *   left_trigger       — cycle sorter to next GREEN  slot (fix/inspect)
@@ -33,6 +32,7 @@ import java.util.Objects;
  * MANUAL STATE:
  *   left_trigger       — rotate sorter one step left  (free rotation)
  *   right_trigger      — rotate sorter one step right (free rotation)
+ *   Y                  - fire current slot
  *   dpad_right         — exit to INTAKE
  *
  * ======================================================================
