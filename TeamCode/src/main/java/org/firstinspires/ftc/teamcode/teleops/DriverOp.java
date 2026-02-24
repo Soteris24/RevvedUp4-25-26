@@ -49,15 +49,27 @@ public class DriverOp extends LinearOpMode {
 
             shooter.setPIDFCoefficients();
 
-            // --- Drivetrain ---
-            double y  = -gamepad1.left_stick_y;
-            double x  =  gamepad1.left_stick_x;
-            double rx =  gamepad1.right_stick_x;
+            // --- Drivetrain (gamepad1) ---
+            double y  = -gamepad2.left_stick_y;
+            double x  =  gamepad2.left_stick_x;
+            double rx =  gamepad2.right_stick_x;
 
-            // Slow rotation while the sorter is physically moving during a shot
             double rotInput = artifactSystem.isActivelyShooting() ? rx / 3.0 : rx;
             drivetrain.drive(y, x, rotInput);
 
+            // --- ArtifactSystem (gamepad2) ---
+            // Button map:
+            //   dpad_up    — enter SHOOT (long RPM) from INTAKE / SET long  RPM in SHOOT
+            //   dpad_down  — SET short RPM in SHOOT
+            //   dpad_left  — enter SHOOT (short RPM) from INTAKE
+            //   dpad_right — exit SHOOT / MANUAL → INTAKE
+            //   left_bumper  INTAKE: manual GREEN   | SHOOT: fire GREEN
+            //   right_bumper INTAKE: manual PURPLE  | SHOOT: fire PURPLE
+            //   left_trigger  INTAKE: inspect GREEN  | MANUAL: rotate left
+            //   right_trigger INTAKE: inspect PURPLE | MANUAL: rotate right
+            //   y — toggle intake (INTAKE) / fire current slot (MANUAL)
+            //   x — fire current slot in SHOOT state (no rotation)
+            //   a — reverse intake (hold)
             artifactSystem.update(
                     gamepad2.dpad_up,
                     gamepad2.dpad_down,
@@ -67,17 +79,16 @@ public class DriverOp extends LinearOpMode {
                     gamepad2.right_trigger > 0.5,
                     gamepad2.left_bumper,
                     gamepad2.right_bumper,
-                    gamepad2.y,
-                    gamepad2.y,
-                    gamepad2.x,
+                    gamepad2.y,           // intake toggle (INTAKE) / fire current slot (MANUAL)
+                    gamepad2.x,           // fire current slot (SHOOT)
+                    gamepad2.a,           // reverse intake
+                    gamepad2.b,           // auto fire all
                     currentTime
             );
 
-            // Sorter PID
             sorter.update();
         }
 
-        // Cleanup
         drivetrain.stop();
         sorter.resetPID();
         artifactSystem.resetSlot();

@@ -14,7 +14,7 @@ import java.util.Objects;
  *
  * INTAKE STATE:
  *   Y                  — toggle intake on/off
- *   X                  - reverse intake for 0.5 secs
+ *   A                  — reverse intake (hold)
  *   left_bumper        — manual GREEN  detect (mark current ball as G)
  *   right_bumper       — manual PURPLE detect (mark current ball as P)
  *   left_trigger       — cycle sorter to next GREEN  slot (fix/inspect)
@@ -25,14 +25,16 @@ import java.util.Objects;
  * SHOOT STATE:
  *   left_bumper        — find GREEN  artifact, rotate sorter, fire, retract
  *   right_bumper       — find PURPLE artifact, rotate sorter, fire, retract
- *   dpad_up            — increase RPM
- *   dpad_down          — decrease RPM
+ *   X (IDLE only)      — shoot current slot (no rotation, fires what is there now)
+ *   X (mid-shot)       — rescue: abort shot and force servo back to idle
+ *   dpad_up            — SET long RPM  (2700)
+ *   dpad_down          — SET short RPM (2100)
  *   dpad_right         — exit to INTAKE
  *
  * MANUAL STATE:
- *   left_trigger       — rotate sorter one step left  (free rotation)
- *   right_trigger      — rotate sorter one step right (free rotation)
- *   Y                  - fire current slot
+ *   left_trigger       — rotate sorter one step left  (blocked while servo active)
+ *   right_trigger      — rotate sorter one step right (blocked while servo active)
+ *   Y                  — fire current slot             (blocked while sorter moving)
  *   dpad_right         — exit to INTAKE
  *
  * ======================================================================
@@ -42,83 +44,92 @@ public class ArtifactSystem {
     // =========================================================================
     // DEPENDENCIES
     // =========================================================================
-    private final RobotHardware hw;
-    private final Sorter sorter;
-    private final Shooter2 shooter;
-    private final Intake intake;
-    private final Telemetry telemetry;
+    private final RobotHardware   hw;
+    private final Sorter          sorter;
+    private final Shooter2        shooter;
+    private final Intake          intake;
+    private final Telemetry       telemetry;
     private final PanelsTelemetry panelsTel = PanelsTelemetry.INSTANCE;
-    private final boolean telemetryOn;
+    private final boolean         telemetryOn;
 
     // =========================================================================
     // PUBLIC STATE ENUMS
     // =========================================================================
-    public enum RobotState { INTAKE, SHOOTING, MANUAL }
-    public enum ShootSubState { IDLE, MOVE_TO_SLOT, ROTATE_SORTER, TRANSFER, RESET }
+    public enum RobotState     { INTAKE, SHOOTING, MANUAL }
+    public enum ShootSubState  { IDLE, MOVE_TO_SLOT, ROTATE_SORTER, TRANSFER, RESET }
     public enum IntakeSubState { IDLE, INTAKE, WAIT, RETURN, FULL }
 
-    public RobotState robotState = RobotState.INTAKE;
-    public ShootSubState shootSubState = ShootSubState.IDLE;
+    public RobotState     robotState     = RobotState.INTAKE;
+    public ShootSubState  shootSubState  = ShootSubState.IDLE;
     public IntakeSubState intakeSubState = IntakeSubState.IDLE;
 
     // =========================================================================
     // ARTIFACT STORAGE
     // =========================================================================
-    public String[] storedArtifacts = new String[3];
-    public int artifactCount = 0;
-    public int targetSlot = 0;
-    public int currentSlot = 0;
-    public int nextSlotIndex = 0;
-    public boolean offSetApplied   = false;
-    public boolean artifactPresent = false;
+    public String[]  storedArtifacts = new String[3];
+    public int       artifactCount   = 0;
+    public int       targetSlot      = 0;
+    public int       currentSlot     = 0;
+    public int       nextSlotIndex   = 0;
+    public boolean   offSetApplied   = false;
+    public boolean   artifactPresent = false;
 
     // Motif sorting (optional)
     public boolean  motifSortingEnabled = false;
-    public String[] motif = {"G", "P", "P"};
-    private int motifProgress = 0;
+    public String[] motif               = {"G", "P", "P"};
+    private int     motifProgress       = 0;
 
     // =========================================================================
     // SHOOTING INTERNALS
     // =========================================================================
-    public double rpm = SHORT_RPM;
+    public double rpm                    = SHORT_RPM;
     public static final double SHORT_RPM = 2100;
     public static final double LONG_RPM  = 2700;
 
-    private String pendingShootColor = null;
+    private String  pendingShootColor  = null;
     private boolean transferInProgress = false;
-    private double transferStartTime = 0;
-    private boolean sorterMoved = false;
-    private boolean manualTransferActive = false;
+    private double  transferStartTime  = 0;
+    private boolean sorterMoved        = false;
+    private boolean autoFire           = false; // true = fire all slots automatically
 
     // Guard timer — prevents ROTATE_SORTER from seeing atTarget() before
     // the motor has physically started moving.
-    private double rotateStartTime         = 0;
+    private double rotateStartTime               = 0;
     private static final double ROTATE_GUARD_SEC = 0.15;
+
+    // =========================================================================
+    // MANUAL TRANSFER STATE
+    // Used in both MANUAL and SHOOT (IDLE) states.
+    // While true:  sorter rotation is blocked.
+    // While false: servo push blocked until sorter is at target.
+    // =========================================================================
+    private boolean manualTransferActive  = false;
+    private double  manualTransferStart   = 0;
+    private static final double MANUAL_TRANSFER_SEC = 0.4;
 
     // =========================================================================
     // COLOUR DETECTION INTERNALS
     // =========================================================================
-    private boolean lastDetected = false;
-    private long lastDetectionTime = 0;
+    private boolean lastDetected      = false;
+    private long    lastDetectionTime = 0;
 
     // =========================================================================
     // BUTTON EDGE-DETECTION HISTORY
     // =========================================================================
     private boolean lastDpadUp, lastDpadDown, lastDpadLeft, lastDpadRight;
     private boolean lastLeftTrigger, lastRightTrigger;
-    private boolean lastLeftBumper, lastRightBumper;
+    private boolean lastLeftBumper,  lastRightBumper;
     private boolean lastIntakeToggle;
     private boolean lastServoTransfer;
-    private boolean lastintakeReverse;
-
+    private boolean lastIntakeReverse;
+    private boolean lastButtonB;
 
     // =========================================================================
     // DEBOUNCE
     // =========================================================================
-    private long lastSlotSwitchTime = 0;
+    private long lastSlotSwitchTime          = 0;
     private static final long SLOT_DEBOUNCE_MS = 300;
 
-    // Tracks which slot index the "inspect/fix" cycling is currently looking at
     private int inspectSlotIndex = 0;
 
     // =========================================================================
@@ -127,63 +138,46 @@ public class ArtifactSystem {
     public ArtifactSystem(RobotHardware hw, Telemetry telemetry,
                           Sorter sorter, Shooter2 shooter, Intake intake,
                           boolean telemetryOn) {
-        this.hw = hw;
-        this.telemetry = telemetry;
-        this.sorter = sorter;
-        this.shooter = shooter;
-        this.intake = intake;
+        this.hw          = hw;
+        this.telemetry   = telemetry;
+        this.sorter      = sorter;
+        this.shooter     = shooter;
+        this.intake      = intake;
         this.telemetryOn = telemetryOn;
     }
 
     // =========================================================================
     // MAIN UPDATE — call every loop iteration
     // =========================================================================
-    /**
-     * @param dpadUp         gamepad2.dpad_up
-     * @param dpadDown       gamepad2.dpad_down
-     * @param dpadLeft       gamepad2.dpad_left
-     * @param dpadRight      gamepad2.dpad_right
-     * @param leftTrigger    gamepad2.left_trigger  > 0.5
-     * @param rightTrigger   gamepad2.right_trigger > 0.5
-     * @param leftBumper     gamepad2.left_bumper
-     * @param rightBumper    gamepad2.right_bumper
-     * @param intakeToggle   gamepad2.y
-     * @param servoTranfer   gamepad2.x
-     * @param currentTime    opmode getRuntime()
-     */
-    public void update(boolean dpadUp,       boolean dpadDown,
-                       boolean dpadLeft,     boolean dpadRight,
-                       boolean leftTrigger,  boolean rightTrigger,
-                       boolean leftBumper,   boolean rightBumper,
-                       boolean intakeToggle, boolean servoTranfer,
-                       boolean intakereverse,
+    public void update(boolean dpadUp,        boolean dpadDown,
+                       boolean dpadLeft,      boolean dpadRight,
+                       boolean leftTrigger,   boolean rightTrigger,
+                       boolean leftBumper,    boolean rightBumper,
+                       boolean intakeToggle,  boolean servoTransfer,
+                       boolean intakeReverse, boolean buttonB,
                        double  currentTime) {
 
         // --- Rising edges ---
-        boolean upEdge     = dpadUp     && !lastDpadUp;
-        boolean downEdge   = dpadDown   && !lastDpadDown;
-        boolean leftEdge   = dpadLeft   && !lastDpadLeft;
-        boolean rightEdge  = dpadRight  && !lastDpadRight;
-        boolean ltEdge     = leftTrigger  && !lastLeftTrigger;
-        boolean rtEdge     = rightTrigger && !lastRightTrigger;
-        boolean lbEdge     = leftBumper   && !lastLeftBumper;
-        boolean rbEdge     = rightBumper  && !lastRightBumper;
-        boolean intakeEdge = intakeToggle && !lastIntakeToggle;
-        boolean servoedge = servoTranfer && !lastServoTransfer;
-        boolean intakerevEgde = intakereverse && !lastintakeReverse;
+        boolean upEdge        = dpadUp        && !lastDpadUp;
+        boolean downEdge      = dpadDown      && !lastDpadDown;
+        boolean leftEdge      = dpadLeft      && !lastDpadLeft;
+        boolean rightEdge     = dpadRight     && !lastDpadRight;
+        boolean ltEdge        = leftTrigger   && !lastLeftTrigger;
+        boolean rtEdge        = rightTrigger  && !lastRightTrigger;
+        boolean lbEdge        = leftBumper    && !lastLeftBumper;
+        boolean rbEdge        = rightBumper   && !lastRightBumper;
+        boolean intakeEdge    = intakeToggle  && !lastIntakeToggle;
+        boolean servoEdge     = servoTransfer && !lastServoTransfer;
+        boolean intakeRevEdge = intakeReverse && !lastIntakeReverse;
+        boolean bEdge         = buttonB && !lastButtonB;
 
         // --- Global state transitions ---
-        // dpad_right → always exit shoot / manual back to intake
         if (rightEdge && (robotState == RobotState.SHOOTING || robotState == RobotState.MANUAL)) {
             enterIntakeState();
-        }
-        // dpad_left → enter shoot (short) from intake
-        else if (leftEdge && robotState == RobotState.INTAKE) {
+        } else if (leftEdge && robotState == RobotState.INTAKE) {
             rpm = SHORT_RPM;
             enterShootingState();
-        }
-        // dpad_up → enter shoot (long) from intake; or SET long RPM if already shooting
-        else if (upEdge) {
+        } else if (upEdge) {
             if (robotState == RobotState.INTAKE) {
                 rpm = LONG_RPM;
                 enterShootingState();
@@ -191,9 +185,12 @@ public class ArtifactSystem {
                 rpm = LONG_RPM;
                 shooter.setTargetVelRPM(rpm);
             }
-        }
-        // dpad_down → SET short RPM in shoot state
-        else if (downEdge && robotState == RobotState.SHOOTING) {
+        } else if (bEdge && robotState == RobotState.SHOOTING && shootSubState == ShootSubState.IDLE) {
+            // B = auto fire all — shoots every remaining artifact in sequence
+            autoFire = true;
+            pendingShootColor = null;
+            startNextAutoShot();
+        } else if (downEdge && robotState == RobotState.SHOOTING) {
             rpm = SHORT_RPM;
             shooter.setTargetVelRPM(rpm);
         }
@@ -201,47 +198,55 @@ public class ArtifactSystem {
         // --- Per-state update ---
         switch (robotState) {
             case INTAKE:
-                updateIntake(lbEdge, rbEdge, ltEdge, rtEdge, intakeEdge, currentTime, intakerevEgde);
+                updateIntake(lbEdge, rbEdge, ltEdge, rtEdge,
+                        intakeEdge, intakeRevEdge, currentTime);
                 break;
             case SHOOTING:
-                updateShooting(lbEdge, rbEdge, currentTime);
+                updateShooting(lbEdge, rbEdge, servoEdge, currentTime);
                 break;
             case MANUAL:
-                updateManual(ltEdge, rtEdge, servoedge, currentTime);
+                updateManual(ltEdge, rtEdge, servoEdge, currentTime);
                 break;
         }
 
         // --- Save button history ---
-        lastDpadUp    = dpadUp;    lastDpadDown  = dpadDown;
-        lastDpadLeft  = dpadLeft;  lastDpadRight = dpadRight;
-        lastLeftTrigger  = leftTrigger;  lastRightTrigger = rightTrigger;
-        lastLeftBumper   = leftBumper;   lastRightBumper  = rightBumper;
-        lastIntakeToggle = intakeToggle;
-        lastServoTransfer =servoTranfer;
+        lastDpadUp        = dpadUp;
+        lastDpadDown      = dpadDown;
+        lastDpadLeft      = dpadLeft;
+        lastDpadRight     = dpadRight;
+        lastLeftTrigger   = leftTrigger;
+        lastRightTrigger  = rightTrigger;
+        lastLeftBumper    = leftBumper;
+        lastRightBumper   = rightBumper;
+        lastIntakeToggle  = intakeToggle;
+        lastServoTransfer = servoTransfer;
+        lastIntakeReverse = intakeReverse;
+        lastButtonB       = buttonB;
 
         // --- Telemetry ---
         if (telemetryOn) {
-            panelsTel.getTelemetry().addData("RobotState",     robotState);
-            panelsTel.getTelemetry().addData("ShootSubState",  shootSubState);
-            panelsTel.getTelemetry().addData("IntakeSubState", intakeSubState);
-            panelsTel.getTelemetry().addData("ArtifactCount",  artifactCount);
-            panelsTel.getTelemetry().addData("Artifacts",      Arrays.toString(storedArtifacts));
-            panelsTel.getTelemetry().addData("CurrentSlot",    currentSlot);
-            panelsTel.getTelemetry().addData("TargetSlot",     targetSlot);
-            panelsTel.getTelemetry().addData("RPM Target",     rpm);
-            panelsTel.getTelemetry().addData("IntakeOn",       intake.intakeOn);
+            panelsTel.getTelemetry().addData("RobotState",           robotState);
+            panelsTel.getTelemetry().addData("ShootSubState",         shootSubState);
+            panelsTel.getTelemetry().addData("IntakeSubState",        intakeSubState);
+            panelsTel.getTelemetry().addData("ArtifactCount",         artifactCount);
+            panelsTel.getTelemetry().addData("Artifacts",             Arrays.toString(storedArtifacts));
+            panelsTel.getTelemetry().addData("CurrentSlot",           currentSlot);
+            panelsTel.getTelemetry().addData("TargetSlot",            targetSlot);
+            panelsTel.getTelemetry().addData("RPM Target",            rpm);
+            panelsTel.getTelemetry().addData("IntakeOn",              intake.intakeOn);
+            panelsTel.getTelemetry().addData("ManualTransferActive",  manualTransferActive);
+            panelsTel.getTelemetry().addData("SorterAtTarget",        sorter.atTarget());
         }
     }
 
     // =========================================================================
     // INTAKE STATE
     // =========================================================================
-    private void updateIntake(boolean lbEdge, boolean rbEdge,
-                              boolean ltEdge,  boolean rtEdge,
-                              boolean intakeEdge,
-                              double currentTime, boolean intakerevedge) {
+    private void updateIntake(boolean lbEdge,     boolean rbEdge,
+                              boolean ltEdge,     boolean rtEdge,
+                              boolean intakeEdge, boolean intakeRevEdge,
+                              double  currentTime) {
 
-        // Y toggles intake on/off
         if (intakeEdge) {
             intake.intakeOn = !intake.intakeOn;
             if (intake.intakeOn) {
@@ -252,22 +257,12 @@ public class ArtifactSystem {
             }
         }
 
-        // drive the intake motor every tick based on intake.intakeOn
-        // (intakeOn is a flag; the Intake subsystem needs to be called to apply power)
-        intake.intake(false, intakerevedge, currentTime);
+        intake.intake(false, intakeRevEdge, currentTime);
 
-        // Run colour detection only while actively intaking
         if (intakeSubState == IntakeSubState.INTAKE) {
             detect();
         }
 
-        // ------------------------------------------------------------------
-        // Bumpers = manual colour assignment.
-        // Left bumper  = mark next free slot as GREEN.
-        // Right bumper = mark next free slot as PURPLE.
-        // We set manualOverride so the sub-state machine doesn't also fire
-        // a moveDegrees() on the same tick.
-        // ------------------------------------------------------------------
         boolean manualOverride = false;
         long now = System.currentTimeMillis();
 
@@ -283,13 +278,6 @@ public class ArtifactSystem {
             }
         }
 
-        // ------------------------------------------------------------------
-        // Triggers = inspect/fix mode.
-        // Cycles the sorter through slots of the requested colour so the
-        // driver can verify or re-collect a missed/wrong ball.
-        // Left trigger  = find next GREEN  slot and rotate to it.
-        // Right trigger = find next PURPLE slot and rotate to it.
-        // ------------------------------------------------------------------
         if (now - lastSlotSwitchTime > SLOT_DEBOUNCE_MS) {
             if (ltEdge) {
                 int slot = findNextSlotByColor("G", inspectSlotIndex);
@@ -310,12 +298,10 @@ public class ArtifactSystem {
             }
         }
 
-        if (manualOverride) return; // skip sub-state machine this tick
+        if (manualOverride) return;
 
-        // --- Intake auto-rotation sub-state machine ---
         switch (intakeSubState) {
             case IDLE:
-                // Waiting for intake toggle — nothing to do.
                 break;
 
             case INTAKE:
@@ -360,18 +346,35 @@ public class ArtifactSystem {
                 break;
         }
 
-        // Keep flywheel warm during intake
         shooter.setTargetVelRPM(intake.intakeOn ? 1000 : 0);
     }
 
     // =========================================================================
     // SHOOT STATE
     // =========================================================================
-    private void updateShooting(boolean lbEdge, boolean rbEdge, double currentTime) {
+    private void updateShooting(boolean lbEdge, boolean rbEdge,
+                                boolean servoEdge, double currentTime) {
 
         shooter.setTargetVelRPM(rpm);
 
-        // Accept a new bumper press only while idle (between shots)
+        // X = full servo cycle (push down, wait, come back up) same as MANUAL state.
+        // Works whether idle or mid-shot — just kicks the servo regardless.
+        if (servoEdge && !manualTransferActive) {
+            manualTransferActive = true;
+            manualTransferStart  = currentTime;
+            hw.sorterTransfer.setPosition(RobotHardware.transferPush);
+        }
+        if (manualTransferActive) {
+            if (currentTime - manualTransferStart > MANUAL_TRANSFER_SEC) {
+                hw.sorterTransfer.setPosition(RobotHardware.transferIdle);
+                manualTransferActive = false;
+            }
+            return; // let the servo cycle finish before running the state machine
+        }
+
+        // ------------------------------------------------------------------
+        // When IDLE: accept bumper (colour-targeted) or X (current slot).
+        // ------------------------------------------------------------------
         if (shootSubState == ShootSubState.IDLE) {
             if (lbEdge) {
                 pendingShootColor = "G";
@@ -396,11 +399,10 @@ public class ArtifactSystem {
                 break;
 
             case ROTATE_SORTER:
-                // Guard: don't check atTarget() until the motor has had time to start moving
                 if (currentTime - rotateStartTime < ROTATE_GUARD_SEC) break;
 
                 if (!sorterMoved && sorter.atTarget()) {
-                    moveToSlot(targetSlot); // confirm position
+                    moveToSlot(targetSlot);
                     sorterMoved = true;
                 } else if (sorterMoved && sorter.atTarget()) {
                     transferInProgress = true;
@@ -409,7 +411,12 @@ public class ArtifactSystem {
                 break;
 
             case TRANSFER:
-                if (transferInProgress && sorter.atTarget() && shooter.atTargetVel()) {
+                // Fire when sorter is in place AND shooter is at speed.
+                // Timeout after 3s in case the shooter never reaches target velocity
+                // (low battery) — fire anyway rather than hanging forever.
+                boolean shooterReady = shooter.atTargetVel();
+                boolean transferTimedOut = (currentTime - rotateStartTime) > 3.0;
+                if (transferInProgress && sorter.atTarget() && (shooterReady || transferTimedOut)) {
                     transferStartTime = currentTime;
                     hw.sorterTransfer.setPosition(RobotHardware.transferPush);
                     shootSubState = ShootSubState.RESET;
@@ -417,33 +424,48 @@ public class ArtifactSystem {
                 break;
 
             case RESET:
-                // Retract pusher after 0.5 s
-                if (transferInProgress && currentTime - transferStartTime > 0.5) {
+                // Phase 1 — retract servo after 0.5s
+                if (transferInProgress && currentTime - transferStartTime > 0.23) {
                     hw.sorterTransfer.setPosition(RobotHardware.transferIdle);
-                    transferStartTime  = currentTime;
-                    transferInProgress = false;
                     removeArtifact(currentSlot);
                     artifactCount--;
+                    transferInProgress = false;
+                    sorterMoved        = false;
+                    pendingShootColor  = null;
+                    transferStartTime  = currentTime; // reuse timer for phase 2
                 }
-                // 0.5 s later decide next step
-                if (!transferInProgress && currentTime - transferStartTime > 0.5) {
-                    sorterMoved       = false;
-                    pendingShootColor = null;
-
+                // Phase 2 — wait for servo to physically clear the sorter before moving
+                if (!transferInProgress && currentTime - transferStartTime > 0.25) {
                     if (artifactCount <= 0) {
                         artifactCount = 0;
+                        autoFire      = false;
                         enterManualState();
+                    } else if (autoFire) {
+                        startNextAutoShot();
                     } else {
-                        shootSubState = ShootSubState.IDLE; // wait for next bumper press
+                        shootSubState = ShootSubState.IDLE;
                     }
                 }
                 break;
         }
     }
 
+    // Picks the next available slot and fires — used by auto fire sequence.
+    private void startNextAutoShot() {
+        int slot = findAnySlot();
+        if (slot == -1) {
+            autoFire = false;
+            enterManualState();
+            return;
+        }
+        targetSlot        = slot;
+        pendingShootColor = storedArtifacts[slot];
+        shootSubState     = ShootSubState.MOVE_TO_SLOT;
+    }
+
     private void startShot() {
         int slot = findSlotByColor(pendingShootColor);
-        if (slot == -1) slot = findAnySlot(); // fallback
+        if (slot == -1) slot = findAnySlot();
         if (slot == -1) {
             pendingShootColor = null;
             return;
@@ -455,31 +477,37 @@ public class ArtifactSystem {
     // =========================================================================
     // MANUAL STATE
     // =========================================================================
-    private void updateManual(boolean ltEdge, boolean rtEdge, boolean servoPressed, double currentTime) {
-        // Shooter stays spinning at last RPM.
-        // Triggers rotate the sorter freely (not snapped to the 3 intake slots).
+    private void updateManual(boolean ltEdge, boolean rtEdge,
+                              boolean servoEdge, double currentTime) {
         // dpad_right -> enterIntakeState() handled globally in update().
 
         long now = System.currentTimeMillis();
-        if (now - lastSlotSwitchTime > SLOT_DEBOUNCE_MS) {
-            if (ltEdge) {
-                sorter.moveDegrees(-RobotHardware.DEG_PER_SLOT);
-                lastSlotSwitchTime = now;
-            } else if (rtEdge) {
-                sorter.moveDegrees(RobotHardware.DEG_PER_SLOT);
-                lastSlotSwitchTime = now;
-            }
-        }
-        if (servoPressed && !manualTransferActive) {
-            manualTransferActive = true;
-            transferStartTime = currentTime;
-            hw.sorterTransfer.setPosition(RobotHardware.transferPush);
-        }
 
-        // Retract after 0.4 seconds
-        if (manualTransferActive && currentTime - transferStartTime > 0.4) {
-            hw.sorterTransfer.setPosition(RobotHardware.transferIdle);
-            manualTransferActive = false;
+        if (!manualTransferActive) {
+            // Servo is idle — allow sorter rotation
+            if (now - lastSlotSwitchTime > SLOT_DEBOUNCE_MS) {
+                if (ltEdge) {
+                    sorter.moveDegrees(-RobotHardware.DEG_PER_SLOT);
+                    lastSlotSwitchTime = now;
+                } else if (rtEdge) {
+                    sorter.moveDegrees(RobotHardware.DEG_PER_SLOT);
+                    lastSlotSwitchTime = now;
+                }
+            }
+
+            // Allow fire only when sorter has settled
+            if (servoEdge && sorter.atTarget()) {
+                manualTransferActive = true;
+                manualTransferStart  = currentTime;
+                hw.sorterTransfer.setPosition(RobotHardware.transferPush);
+            }
+        } else {
+            // Servo is active — retract after timeout, then unlock rotation
+            if (currentTime - manualTransferStart > MANUAL_TRANSFER_SEC) {
+                hw.sorterTransfer.setPosition(RobotHardware.transferIdle);
+                manualTransferActive = false;
+            }
+            // Sorter rotation intentionally blocked while servo is out
         }
     }
 
@@ -487,24 +515,29 @@ public class ArtifactSystem {
     // STATE TRANSITION HELPERS
     // =========================================================================
     private void enterShootingState() {
-        robotState         = RobotState.SHOOTING;
-        shootSubState      = ShootSubState.IDLE;
-        sorterMoved        = false;
-        transferInProgress = false;
-        pendingShootColor  = null;
-        intake.intakeOn    = false;
+        robotState           = RobotState.SHOOTING;
+        shootSubState        = ShootSubState.IDLE;
+        sorterMoved          = false;
+        transferInProgress   = false;
+        pendingShootColor    = null;
+        manualTransferActive = false;
+        autoFire             = false;
+        intake.intakeOn      = false;
         shooter.setTargetVelRPM(rpm);
     }
 
     private void enterManualState() {
-        robotState    = RobotState.MANUAL;
-        shootSubState = ShootSubState.IDLE;
+        robotState           = RobotState.MANUAL;
+        shootSubState        = ShootSubState.IDLE;
+        manualTransferActive = false;
         // Shooter intentionally stays spinning
     }
 
     private void enterIntakeState() {
         shooter.setTargetVelRPM(0);
-        intake.intakeOn = false;
+        intake.intakeOn      = false;
+        manualTransferActive = false;
+        hw.sorterTransfer.setPosition(RobotHardware.transferIdle);
 
         if (offSetApplied) {
             sorter.moveDegrees(60);
@@ -528,7 +561,7 @@ public class ArtifactSystem {
         double d1 = hw.colorSensor.getDistance(DistanceUnit.MM);
         double d2 = hw.colorSensor2.getDistance(DistanceUnit.MM);
 
-        boolean detectedNow = (d1 < 25 || d2 < 25);
+        boolean detectedNow = (d1 < 50 || d2 < 50);
         boolean risingEdge  = detectedNow && !lastDetected;
 
         long now = System.currentTimeMillis();
@@ -549,7 +582,6 @@ public class ArtifactSystem {
         lastDetected = detectedNow;
     }
 
-    // Manual detect — called by bumper presses in intake state
     private void manualDetect(String color) {
         if (artifactCount >= storedArtifacts.length) return;
         storedArtifacts[nextSlotIndex] = color;
@@ -560,12 +592,6 @@ public class ArtifactSystem {
     // =========================================================================
     // SLOT / ARTIFACT MANAGEMENT
     // =========================================================================
-
-    /**
-     * Rotate the sorter to the physical position of a given slot index,
-     * accounting for whether an offset has already been applied.
-     * Used by both shooting and inspect/fix in intake.
-     */
     private void moveToSlot(int slot) {
         if (storedArtifacts[slot] == null) return;
 
@@ -574,8 +600,8 @@ public class ArtifactSystem {
             switch (slot) {
                 case 0:  deg = -60;  break;
                 case 1:  deg =  60;  break;
-                case 2:  deg =  180; break;
-                default: deg =  0;
+                case 2:  deg = 180;  break;
+                default: deg =   0;
             }
             sorter.moveDegrees(deg);
             offSetApplied = true;
@@ -590,18 +616,14 @@ public class ArtifactSystem {
         currentSlot = slot;
     }
 
-    /**
-     * Rotate to a slot regardless of whether it has an artifact (used for
-     * inspect/fix cycles where the slot might be empty).
-     */
     private void rotateToPhysicalSlot(int slot) {
         if (!offSetApplied) {
             double deg;
             switch (slot) {
                 case 0:  deg = -60;  break;
                 case 1:  deg =  60;  break;
-                case 2:  deg =  180; break;
-                default: deg =  0;
+                case 2:  deg = 180;  break;
+                default: deg =   0;
             }
             sorter.moveDegrees(deg);
             offSetApplied = true;
@@ -623,10 +645,6 @@ public class ArtifactSystem {
         return -1;
     }
 
-    /**
-     * Find the next slot of a given color starting from startIndex (wraps around).
-     * Used by inspect/fix trigger cycling.
-     */
     private int findNextSlotByColor(String color, int startIndex) {
         for (int i = 0; i < storedArtifacts.length; i++) {
             int idx = (startIndex + i) % storedArtifacts.length;
@@ -659,7 +677,6 @@ public class ArtifactSystem {
         Arrays.fill(storedArtifacts, null);
     }
 
-    /** DriverOp uses this to slow drivetrain rotation while a shot is in progress. */
     public boolean isActivelyShooting() {
         return robotState == RobotState.SHOOTING
                 && shootSubState != ShootSubState.IDLE;
