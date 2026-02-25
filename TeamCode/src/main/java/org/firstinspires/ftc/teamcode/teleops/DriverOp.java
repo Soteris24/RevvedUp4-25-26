@@ -50,9 +50,9 @@ public class DriverOp extends LinearOpMode {
             shooter.setPIDFCoefficients();
 
             // --- Drivetrain (gamepad1) ---
-            double y  = -gamepad2.left_stick_y;
-            double x  =  gamepad2.left_stick_x;
-            double rx =  gamepad2.right_stick_x;
+            double y  = -gamepad1.left_stick_y;
+            double x  =  gamepad1.left_stick_x;
+            double rx =  gamepad1.right_stick_x;
 
             double rotInput = artifactSystem.isActivelyShooting() ? rx / 3.0 : rx;
             drivetrain.drive(y, x, rotInput);
@@ -85,6 +85,9 @@ public class DriverOp extends LinearOpMode {
                     gamepad2.b,           // auto fire all
                     currentTime
             );
+            if (gamepad1.a) {
+                drivetrain.facePoint(0, 0);
+            }
 
             sorter.update();
         }

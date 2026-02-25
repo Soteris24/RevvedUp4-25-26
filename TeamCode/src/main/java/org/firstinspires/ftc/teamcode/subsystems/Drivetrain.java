@@ -1,12 +1,19 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
 import com.bylazar.telemetry.PanelsTelemetry;
+import com.pedropathing.follower.Follower;
+import com.pedropathing.geometry.BezierLine;
+import com.pedropathing.geometry.Pose;
+import com.pedropathing.paths.PathChain;
+
 import org.firstinspires.ftc.teamcode.RobotHardware;
 
 public class Drivetrain {
     RobotHardware hw;
+    Follower follower;
     PanelsTelemetry panelsTelemetry = PanelsTelemetry.INSTANCE;
     public boolean telemetryOn;
+    //private final Pose startPose = new Pose(0, 0, Math.toRadians(45));
 
     public Drivetrain(RobotHardware hw, boolean telemetryOn) {
         this.hw = hw;
@@ -82,5 +89,30 @@ public class Drivetrain {
 
     public void stop() {
         setMotorPowers(0, 0, 0, 0);
+    }
+
+    public void facePoint(double targetX, double targetY) {
+        Pose currentPose = follower.getPose();
+
+        double dx = targetX - currentPose.getX();
+        double dy = targetY - currentPose.getY();
+
+        double targetHeading = Math.atan2(dy, dx);
+
+        Pose targetPose = new Pose(
+                currentPose.getX(),
+                currentPose.getY(),
+                targetHeading
+        );
+
+        PathChain path = follower.pathBuilder()
+                .addPath(new BezierLine(currentPose, targetPose))
+                .setLinearHeadingInterpolation(
+                        currentPose.getHeading(),
+                        targetHeading
+                )
+                .build();
+
+        follower.followPath(path);
     }
 }
