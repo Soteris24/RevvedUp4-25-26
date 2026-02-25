@@ -16,7 +16,6 @@ import org.firstinspires.ftc.teamcode.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter2;
 import org.firstinspires.ftc.teamcode.subsystems.Sorter;
 
-
 @Autonomous(name = "Autonomous RED")
 public class AutonomousREDnew extends LinearOpMode {
 
@@ -40,7 +39,7 @@ public class AutonomousREDnew extends LinearOpMode {
     private final Pose pos2         = new Pose(-30, -61, Math.toRadians(0));
     private final Pose pos2Forward  = new Pose(-2.3, -61, Math.toRadians(0));
 
-    // ArtifactSystem control flags — set these to true to send a one-shot command.
+    // ArtifactSystem control flags
     // They are automatically cleared at the bottom of each loop iteration.
     private boolean dpadUp        = false;
     private boolean dpadDown      = false;
@@ -55,24 +54,16 @@ public class AutonomousREDnew extends LinearOpMode {
     private boolean intakeReverse = false;
     private boolean buttonB       = false; // auto fire all
 
-    // Last-state tracking for rising-edge detection sent into ArtifactSystem
-    private boolean lastButtonB       = false;
-    private boolean lastDpadUp        = false;
-    private boolean lastDpadDown      = false;
-    private boolean lastDpadLeft      = false;
-    private boolean lastDpadRight     = false;
-    private boolean lastLeftBumper    = false;
-    private boolean lastRightBumper   = false;
-    private boolean lastIntakeToggle  = false;
-    private boolean lastServoTransfer = false;
-    private boolean lastIntakeReverse = false;
-
     // Movement tracking
     private boolean   isMoving    = false;
     private PathChain currentPath = null;
 
     // Cycle tracking: 0 = initial shoot, 1 = pos1 cycle, 2 = pos2 cycle
     private int currentCycle = 0;
+
+    // State machine flags
+    private boolean shootingPosStarted = false;
+    private boolean collectingStarted  = false;
 
     // State machine
     enum AutoState {
@@ -112,59 +103,6 @@ public class AutonomousREDnew extends LinearOpMode {
             sorter.update();
             shooter.setPIDFCoefficients();
 
-            // Build rising edges from our flag variables
-            boolean sendButtonB       = buttonB       && !lastButtonB;
-            boolean sendDpadUp        = dpadUp        && !lastDpadUp;
-            boolean sendDpadDown      = dpadDown      && !lastDpadDown;
-            boolean sendDpadLeft      = dpadLeft      && !lastDpadLeft;
-            boolean sendDpadRight     = dpadRight     && !lastDpadRight;
-            boolean sendLeftBumper    = leftBumper    && !lastLeftBumper;
-            boolean sendRightBumper   = rightBumper   && !lastRightBumper;
-            boolean sendIntakeToggle  = intakeToggle  && !lastIntakeToggle;
-            boolean sendServoTransfer = servoTransfer && !lastServoTransfer;
-            boolean sendIntakeReverse = intakeReverse && !lastIntakeReverse;
-
-            artifactSystem.update(
-                    sendDpadUp,
-                    sendDpadDown,
-                    sendDpadLeft,
-                    sendDpadRight,
-                    leftTrigger,        // continuous
-                    rightTrigger,       // continuous
-                    sendLeftBumper,
-                    sendRightBumper,
-                    sendIntakeToggle,
-                    sendServoTransfer,
-                    sendIntakeReverse,
-                    sendButtonB,
-                    currentTime
-            );
-
-            // Save current flag states for next loop's edge detection
-            lastButtonB       = buttonB;
-            lastDpadUp        = dpadUp;
-            lastDpadDown      = dpadDown;
-            lastDpadLeft      = dpadLeft;
-            lastDpadRight     = dpadRight;
-            lastLeftBumper    = leftBumper;
-            lastRightBumper   = rightBumper;
-            lastIntakeToggle  = intakeToggle;
-            lastServoTransfer = servoTransfer;
-            lastIntakeReverse = intakeReverse;
-
-            // Clear all flags
-            dpadUp        = false;
-            dpadDown      = false;
-            dpadLeft      = false;
-            dpadRight     = false;
-            leftBumper    = false;
-            rightBumper   = false;
-            intakeToggle  = false;
-            servoTransfer = false;
-            intakeReverse = false;
-            buttonB       = false;
-            // Note: leftTrigger / rightTrigger are continuous — clear them too if needed
-
             // Run state machine
             switch (currentState) {
                 case GO_TO_SHOOTING_POS:
@@ -187,6 +125,36 @@ public class AutonomousREDnew extends LinearOpMode {
                     return;
             }
 
+            // Feed raw flags directly into ArtifactSystem
+            // ArtifactSystem handles its own edge detection...
+            artifactSystem.update(
+                    dpadUp,
+                    dpadDown,
+                    dpadLeft,
+                    dpadRight,
+                    leftTrigger,        // continuous
+                    rightTrigger,       // continuous
+                    leftBumper,
+                    rightBumper,
+                    intakeToggle,
+                    servoTransfer,
+                    intakeReverse,
+                    buttonB,
+                    currentTime
+            );
+
+            // Clear all flags for the next loop
+            dpadUp        = false;
+            dpadDown      = false;
+            dpadLeft      = false;
+            dpadRight     = false;
+            leftBumper    = false;
+            rightBumper   = false;
+            intakeToggle  = false;
+            servoTransfer = false;
+            intakeReverse = false;
+            buttonB       = false;
+
             updateTelemetry();
             sleep(10);
         }
@@ -206,7 +174,6 @@ public class AutonomousREDnew extends LinearOpMode {
         artifactSystem = new ArtifactSystem(hw, telemetry, sorter, shooter, intake, false);
 
         // Preload
-
         artifactSystem.storedArtifacts[0] = "G";
         artifactSystem.storedArtifacts[1] = "P";
         artifactSystem.storedArtifacts[2] = "P";
@@ -261,7 +228,9 @@ public class AutonomousREDnew extends LinearOpMode {
 
     private boolean hasReachedTarget() {
         if (!isMoving) return true;
-        if (!follower.isBusy()) {
+
+        // Added a 100ms buffer to allow PedroPathing to register the new path as "busy"
+        if (stateTimer.milliseconds() > 100 && !follower.isBusy()) {
             isMoving    = false;
             currentPath = null;
             return true;
@@ -271,36 +240,42 @@ public class AutonomousREDnew extends LinearOpMode {
 
     // ================== STATE FUNCTIONS ====================
 
-    // STATE: Drive to shooting position, then trigger auto-fire
+    // STATE: Drive to shooting position, then trigger auto fire
     private void runGoToShootingPos() {
         if (currentState != AutoState.GO_TO_SHOOTING_POS) return;
 
-        if (!isMoving) {
+        // Ensure we only initiate the drive once per cycle
+        if (!shootingPosStarted) {
             stateTimer.reset();
             goToPose(shootingPose, "constant");
             dpadLeft = true; // enter SHOOT state
+            shootingPosStarted = true;
         }
 
+        // Wait until reached target and then fire
         if (hasReachedTarget()) {
-            buttonB = true; // auto fire all
-        }
+            buttonB = true; // auto fire all pulse
 
-        // Wait until ArtifactSystem finished shooting
-        if (hasReachedTarget() && !artifactSystem.isActivelyShooting()) { // && artifactSystem.artifactCount == 0
-            if (currentCycle == 0) {
-                currentCycle = 1;
-                transitionToState(AutoState.GO_TO_COLLECTION);
-            } else if (currentCycle == 1) {
-                currentCycle = 2;
-                transitionToState(AutoState.GO_TO_COLLECTION);
-            } else {
-                transitionToState(AutoState.RETURN_HOME);
+            // Wait until ArtifactSystem finishes shooting
+            if (!artifactSystem.isActivelyShooting()) {
+                shootingPosStarted = false; // Reset the flag for the next cycle
+
+                if (currentCycle == 0) {
+                    currentCycle = 1;
+                    transitionToState(AutoState.GO_TO_COLLECTION);
+                } else if (currentCycle == 1) {
+                    currentCycle = 2;
+                    transitionToState(AutoState.GO_TO_COLLECTION);
+                } else {
+                    transitionToState(AutoState.RETURN_HOME);
+                }
             }
         }
 
         // Safety timeout
         if (stateTimer.seconds() > 20.0) {
             isMoving = false;
+            shootingPosStarted = false;
             transitionToState(currentCycle < 2 ? AutoState.GO_TO_COLLECTION : AutoState.RETURN_HOME);
         }
     }
@@ -318,7 +293,7 @@ public class AutonomousREDnew extends LinearOpMode {
                 goToPose(pos2, "linear");
             }
 
-            dpadRight    = true; // exit SHOOT → back to INTAKE state
+            dpadRight    = true; // exit SHOOT state
             intakeToggle = true; // turn intake on
         }
 
@@ -333,8 +308,6 @@ public class AutonomousREDnew extends LinearOpMode {
     }
 
     // STATE: Inch forward slowly while collecting
-    private boolean collectingStarted = false;
-
     private void runCollectBalls() {
         if (currentState != AutoState.COLLECT_BALLS) return;
 
@@ -352,7 +325,7 @@ public class AutonomousREDnew extends LinearOpMode {
 
         // Leave once we have a full load, reached the forward pose, or timed out
         if (artifactSystem.artifactCount >= 3 || hasReachedTarget() || stateTimer.seconds() > 5.0) {
-            intakeToggle      = true; // turn intake off
+            intakeToggle      = true; // turn intake off pulse
             collectingStarted = false;
             transitionToState(AutoState.RETURN_TO_SHOOT);
         }
