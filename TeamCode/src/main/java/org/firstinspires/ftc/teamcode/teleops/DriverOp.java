@@ -2,11 +2,13 @@ package org.firstinspires.ftc.teamcode.teleops;
 
 import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.telemetry.PanelsTelemetry;
+import com.pedropathing.follower.Follower;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.RobotHardware;
 import org.firstinspires.ftc.teamcode.mathUtils.ShooterCalculator;
+import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.subsystems.ArtifactSystem;
 import org.firstinspires.ftc.teamcode.subsystems.Drivetrain;
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
@@ -18,6 +20,7 @@ import org.firstinspires.ftc.teamcode.subsystems.Sorter;
 public class DriverOp extends LinearOpMode {
 
     RobotHardware     hw;
+    Follower         follower;
     Drivetrain        drivetrain;
     Sorter            sorter;
     Shooter2          shooter;
@@ -35,7 +38,9 @@ public class DriverOp extends LinearOpMode {
         hw = new RobotHardware();
         hw.init(hardwareMap);
 
-        drivetrain     = new Drivetrain(hw, false);
+        follower = Constants.createFollower(hardwareMap);
+
+        drivetrain = new Drivetrain(hw, follower, true);
         intake         = new Intake(hw, false);
         sorter         = new Sorter(hw, false);
         shooter        = new Shooter2(hw, false);

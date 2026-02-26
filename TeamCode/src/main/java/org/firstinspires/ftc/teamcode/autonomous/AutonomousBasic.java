@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.autonomous;
 
+import com.pedropathing.follower.Follower;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -18,6 +19,7 @@ public class AutonomousBasic extends LinearOpMode {
 
     // Hardware and subsystems
     RobotHardware hw;
+    Follower follower;
     Drivetrain drivetrain;
     Sorter sorter;
     Shooter2 shooter;
@@ -61,7 +63,7 @@ public class AutonomousBasic extends LinearOpMode {
         telemetry.update();
 
         waitForStart();
-        drivetrain = new Drivetrain(hw, false);
+        drivetrain = new Drivetrain(hw, follower, true);
         shooter = new Shooter2(hw, false);
 
         if (!opModeIsActive()) return;
@@ -112,7 +114,7 @@ public class AutonomousBasic extends LinearOpMode {
         hw.init(hardwareMap);
 
         // Initialize subsystems
-        drivetrain = new Drivetrain(hw, false);
+        drivetrain = new Drivetrain(hw, follower, true);
         intake = new Intake(hw, false);
         sorter = new Sorter(hw, false);
         shooter = new Shooter2(hw, false);

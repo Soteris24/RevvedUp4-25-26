@@ -151,7 +151,7 @@ public class AutonomousRED extends LinearOpMode {
         follower.setStartingPose(startPose);
 
         // Initialize subsystems
-        drivetrain = new Drivetrain(hw, false);
+        drivetrain = new Drivetrain(hw, follower, true);
         intake = new Intake(hw, false);
         sorter = new Sorter(hw, false);
         shooter = new Shooter2(hw, false);

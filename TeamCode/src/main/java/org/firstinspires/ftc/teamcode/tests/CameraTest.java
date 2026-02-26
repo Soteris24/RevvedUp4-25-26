@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.tests;
 
+import com.pedropathing.follower.Follower;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
@@ -11,6 +12,7 @@ import org.firstinspires.ftc.teamcode.mathUtils.ShooterCalculator;
 @TeleOp(name = " webcamTest")
 public class CameraTest extends LinearOpMode {
     Webcam webcam;
+    Follower follower;
     ShooterCalculator shooterCalc;
     Drivetrain drivetrain;
     RobotHardware hw;
@@ -29,7 +31,7 @@ public class CameraTest extends LinearOpMode {
         hw = new RobotHardware();
         hw.init(hardwareMap);
         shooterCalc = new ShooterCalculator(distanceTable, rpmTable);
-        drivetrain = new Drivetrain(hw, false);
+        drivetrain = new Drivetrain(hw, follower, true);
 
         waitForStart();
 

@@ -15,8 +15,9 @@ public class Drivetrain {
     public boolean telemetryOn;
     //private final Pose startPose = new Pose(0, 0, Math.toRadians(45));
 
-    public Drivetrain(RobotHardware hw, boolean telemetryOn) {
+    public Drivetrain(RobotHardware hw, Follower follower, boolean telemetryOn) {
         this.hw = hw;
+        this.follower = follower;
         this.telemetryOn = telemetryOn;
     }
 

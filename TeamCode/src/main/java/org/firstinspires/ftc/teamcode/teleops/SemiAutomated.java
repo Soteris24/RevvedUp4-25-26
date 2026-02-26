@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.teleops;
 
+import com.pedropathing.follower.Follower;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -15,6 +16,7 @@ import org.firstinspires.ftc.teamcode.subsystems.Sorter;
 public class SemiAutomated extends LinearOpMode {
 
     RobotHardware hw;
+    Follower follower;
     Drivetrain drive;
     Shooter2 sh;
     Sorter sorter;
@@ -27,7 +29,7 @@ public class SemiAutomated extends LinearOpMode {
     public void runOpMode() {
         hw = new RobotHardware();
         hw.init(hardwareMap);
-        drive = new Drivetrain(hw, false);
+        drive = new Drivetrain(hw, follower, true);
         intake = new Intake(hw, false);
         sh = new Shooter2(hw, false);
         sorter = new Sorter(hw, false);
