@@ -328,6 +328,7 @@ public class ArtifactSystem {
             case RETURN:
                 if (sorter.atTarget()) {
                     if (artifactCount >= 3) {
+                        sorter.moveDegrees(120);
                         intakeSubState = IntakeSubState.FULL;
                     } else {
                         artifactCount++;
