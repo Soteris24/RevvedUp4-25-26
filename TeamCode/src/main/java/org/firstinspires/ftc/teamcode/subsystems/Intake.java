@@ -14,9 +14,9 @@ public class Intake {
     public boolean reversing = false;
     public  double reverseTime = 0;
 
-    public final double forwardPower = 1;
-    public final double reversePower = -1;
-    public final double reverseDuration = 0.5;
+    public double forwardPower = 1;
+    public double reversePower = -1;
+    public double reverseDuration = 0.5;
 
 
     public Intake(RobotHardware hw, boolean telemetryOn) {

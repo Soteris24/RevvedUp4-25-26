@@ -15,8 +15,8 @@ import org.firstinspires.ftc.teamcode.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter2;
 import org.firstinspires.ftc.teamcode.subsystems.Sorter;
 
-@Autonomous(name = "Autonomous RED")
-public class AutonomousRED extends LinearOpMode {
+@Autonomous(name = "Autonomous BLUE")
+public class AutonomousBLUE extends LinearOpMode {
 
     RobotHardware hw;
     Drivetrain drivetrain;
@@ -32,11 +32,11 @@ public class AutonomousRED extends LinearOpMode {
     private final Pose startPose    = new Pose(0,   0,     Math.toRadians(45));
     private final Pose shootingPose = new Pose(-25, -25,   Math.toRadians(45));
 
-    private final Pose pos1         = new Pose(-20, -38,   Math.toRadians(0));
-    private final Pose pos1Forward  = new Pose(6,   -38, Math.toRadians(0));
+    private final Pose pos1         = new Pose(-38, -23,   Math.toRadians(90));
+    private final Pose pos1Forward  = new Pose(-38,   0, Math.toRadians(90));
 
-    private final Pose pos2         = new Pose(-20, -63,   Math.toRadians(0));
-    private final Pose pos2Forward  = new Pose(15,   -63,   Math.toRadians(0));
+    private final Pose pos2         = new Pose(-63, -20,   Math.toRadians(90));
+    private final Pose pos2Forward  = new Pose(-63,   15,   Math.toRadians(90));
 
     // One-shot command flags — cleared each loop
     private boolean dpadUp, dpadDown, dpadLeft, dpadRight;

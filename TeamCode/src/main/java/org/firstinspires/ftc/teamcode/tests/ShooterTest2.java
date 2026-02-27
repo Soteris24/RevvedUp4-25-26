@@ -5,7 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 
-
+@Disabled
 @TeleOp(name = "ShooterTest2")
 public class ShooterTest2 extends LinearOpMode {
 

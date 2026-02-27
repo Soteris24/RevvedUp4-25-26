@@ -92,28 +92,22 @@ public class Drivetrain {
         setMotorPowers(0, 0, 0, 0);
     }
 
-    public void facePoint(double targetX, double targetY) {
+    public double facePoint(double targetX, double targetY) {
         Pose currentPose = follower.getPose();
 
         double dx = targetX - currentPose.getX();
         double dy = targetY - currentPose.getY();
 
         double targetHeading = Math.atan2(dy, dx);
+        double currentHeading = currentPose.getHeading() + Math.toRadians(180);
 
-        Pose targetPose = new Pose(
-                currentPose.getX(),
-                currentPose.getY(),
-                targetHeading
-        );
+        // Wrap error to [-π, π]
+        double headingError = targetHeading - currentHeading;
+        while (headingError > Math.PI)  headingError -= 2 * Math.PI;
+        while (headingError < -Math.PI) headingError += 2 * Math.PI;
 
-        PathChain path = follower.pathBuilder()
-                .addPath(new BezierLine(currentPose, targetPose))
-                .setLinearHeadingInterpolation(
-                        currentPose.getHeading(),
-                        targetHeading
-                )
-                .build();
-
-        follower.followPath(path);
+        double kP = 0.1; // tune this
+        return Math.max(-1.0, Math.min(1.0, headingError * kP));
     }
+
 }

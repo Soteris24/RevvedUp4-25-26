@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.teleops;
 import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.pedropathing.follower.Follower;
+import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
@@ -59,8 +60,22 @@ public class DriverOp extends LinearOpMode {
             double x  =  gamepad1.left_stick_x;
             double rx =  gamepad1.right_stick_x;
 
-            double rotInput = artifactSystem.isActivelyShooting() ? rx / 3.0 : rx;
+            double rotInput = rx;
+
+            if (gamepad1.a) {
+                rotInput = drivetrain.facePoint(25+15, 0); // returns a rotation power
+            }
+            if (gamepad1.b) {
+                rotInput = drivetrain.facePoint(0, 0); // returns a rotation power
+            }
+
             drivetrain.drive(y, x, rotInput);
+
+
+            Pose currentPose = follower.getPose();
+            double dx = 0 - currentPose.getX(); // goal coordinates
+            double dy = 0 - currentPose.getY();
+            artifactSystem.currentDistance = Math.hypot(dx, dy);
 
             // --- ArtifactSystem (gamepad2) ---
             // Button map:
@@ -91,10 +106,12 @@ public class DriverOp extends LinearOpMode {
                     currentTime
             );
             if (gamepad1.a) {
-                drivetrain.facePoint(0, 0);
+                drivetrain.drive(y, x, rotInput);
             }
-
+            follower.setMaxPower(1);
             sorter.update();
+            follower.update();
+            drivetrain.telemetryOn = true;
         }
 
         drivetrain.stop();

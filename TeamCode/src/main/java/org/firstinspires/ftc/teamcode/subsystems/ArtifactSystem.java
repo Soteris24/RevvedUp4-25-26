@@ -85,6 +85,13 @@ public class ArtifactSystem {
     public double rpm                    = SHORT_RPM;
     public static final double SHORT_RPM = 2100;
     public static final double LONG_RPM  = 2700;
+    // Add near your other fields
+    public double currentDistance = 48; // default fallback
+
+    private static final double[] DISTANCE_TABLE = { 24,   48,   72,   96   };
+    private static final double[] RPM_TABLE      = { 2100, 2350, 2550, 2800 };
+
+
 
     private String  pendingShootColor  = null;
     private boolean transferInProgress = false;
@@ -106,6 +113,8 @@ public class ArtifactSystem {
     private boolean manualTransferActive  = false;
     private double  manualTransferStart   = 0;
     private static final double MANUAL_TRANSFER_SEC = 0.4;
+    public double shootphase1 = 0.25; //0.23
+    public double shootphase2 = 0.21; //0.25
 
     // =========================================================================
     // COLOUR DETECTION INTERNALS
@@ -189,6 +198,17 @@ public class ArtifactSystem {
             // B = auto fire all — shoots every remaining artifact in sequence
             autoFire = true;
             pendingShootColor = null;
+            storedArtifacts[0] = "G";
+
+            storedArtifacts[1] = "P";
+
+            storedArtifacts[2] = "P";
+
+            artifactCount = 3;
+
+            nextSlotIndex = 0;
+
+            currentSlot = 0;
             startNextAutoShot();
         } else if (downEdge && robotState == RobotState.SHOOTING) {
             rpm = SHORT_RPM;
@@ -320,6 +340,7 @@ public class ArtifactSystem {
                         sorter.moveDegrees(120);
                         intakeSubState = IntakeSubState.RETURN;
                     } else {
+                        //sorter.moveDegrees(120);
                         intakeSubState = IntakeSubState.FULL;
                     }
                 }
@@ -328,7 +349,7 @@ public class ArtifactSystem {
             case RETURN:
                 if (sorter.atTarget()) {
                     if (artifactCount >= 3) {
-                        sorter.moveDegrees(120);
+
                         intakeSubState = IntakeSubState.FULL;
                     } else {
                         artifactCount++;
@@ -356,6 +377,7 @@ public class ArtifactSystem {
     private void updateShooting(boolean lbEdge, boolean rbEdge,
                                 boolean servoEdge, double currentTime) {
 
+        rpm = getRPMForDistance(currentDistance);
         shooter.setTargetVelRPM(rpm);
 
         // X = full servo cycle (push down, wait, come back up) same as MANUAL state.
@@ -426,7 +448,7 @@ public class ArtifactSystem {
 
             case RESET:
                 // Phase 1 — retract servo after 0.5s
-                if (transferInProgress && currentTime - transferStartTime > 0.23) {
+                if (transferInProgress && currentTime - transferStartTime > shootphase1) {
                     hw.sorterTransfer.setPosition(RobotHardware.transferIdle);
                     removeArtifact(currentSlot);
                     artifactCount--;
@@ -436,7 +458,7 @@ public class ArtifactSystem {
                     transferStartTime  = currentTime; // reuse timer for phase 2
                 }
                 // Phase 2 — wait for servo to physically clear the sorter before moving
-                if (!transferInProgress && currentTime - transferStartTime > 0.25) {
+                if (!transferInProgress && currentTime - transferStartTime > shootphase2) {
                     if (artifactCount <= 0) {
                         artifactCount = 0;
                         autoFire      = false;
@@ -518,6 +540,7 @@ public class ArtifactSystem {
     private void enterShootingState() {
         robotState           = RobotState.SHOOTING;
         shootSubState        = ShootSubState.IDLE;
+        intake.stop();
         sorterMoved          = false;
         transferInProgress   = false;
         pendingShootColor    = null;
@@ -562,7 +585,7 @@ public class ArtifactSystem {
         double d1 = hw.colorSensor.getDistance(DistanceUnit.MM);
         double d2 = hw.colorSensor2.getDistance(DistanceUnit.MM);
 
-        boolean detectedNow = (d1 < 50 || d2 < 50);
+        boolean detectedNow = (d1 < 80 && d1 > 30); // || d2 < 50
         boolean risingEdge  = detectedNow && !lastDetected;
 
         long now = System.currentTimeMillis();
@@ -681,5 +704,16 @@ public class ArtifactSystem {
     public boolean isActivelyShooting() {
         return robotState == RobotState.SHOOTING
                 && shootSubState != ShootSubState.IDLE;
+    }
+    private double getRPMForDistance(double distance) {
+        if (distance <= DISTANCE_TABLE[0]) return RPM_TABLE[0];
+        if (distance >= DISTANCE_TABLE[DISTANCE_TABLE.length - 1]) return RPM_TABLE[RPM_TABLE.length - 1];
+        for (int i = 0; i < DISTANCE_TABLE.length - 1; i++) {
+            if (distance >= DISTANCE_TABLE[i] && distance <= DISTANCE_TABLE[i + 1]) {
+                double t = (distance - DISTANCE_TABLE[i]) / (DISTANCE_TABLE[i + 1] - DISTANCE_TABLE[i]);
+                return RPM_TABLE[i] + t * (RPM_TABLE[i + 1] - RPM_TABLE[i]);
+            }
+        }
+        return RPM_TABLE[RPM_TABLE.length - 1];
     }
 }
