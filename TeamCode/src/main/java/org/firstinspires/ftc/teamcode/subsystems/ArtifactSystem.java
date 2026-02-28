@@ -113,8 +113,8 @@ public class ArtifactSystem {
     private boolean manualTransferActive  = false;
     private double  manualTransferStart   = 0;
     private static final double MANUAL_TRANSFER_SEC = 0.4;
-    public double shootphase1 = 0.25; //0.23
-    public double shootphase2 = 0.21; //0.25
+    public double shootphase1 = 0.23; //0.23
+    public double shootphase2 = 0.25; //0.25
 
     // =========================================================================
     // COLOUR DETECTION INTERNALS
@@ -377,7 +377,7 @@ public class ArtifactSystem {
     private void updateShooting(boolean lbEdge, boolean rbEdge,
                                 boolean servoEdge, double currentTime) {
 
-        rpm = getRPMForDistance(currentDistance);
+        //rpm = getRPMForDistance(currentDistance);
         shooter.setTargetVelRPM(rpm);
 
         // X = full servo cycle (push down, wait, come back up) same as MANUAL state.
