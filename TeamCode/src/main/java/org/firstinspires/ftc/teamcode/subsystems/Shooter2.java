@@ -14,7 +14,7 @@ RobotHardware hw;
 public static double kP = 0.02;
 public static double kI = 0;
 public static double kD = 0.02;
-public static double kV = 11.5;
+public static double kV = 10;
 
 public double targetVelRPM;
 public double targetVelTPS;
@@ -32,7 +32,7 @@ public double atTargetDelayTime = 600;
     public void setPIDFCoefficients() {
         double voltage = hw.getBatteryVoltage();
 
-        double compensatedF = kV * (12.0 / voltage);
+        double compensatedF = kV * (13.0 / voltage);
 
         hw.leftShooter.setVelocityPIDFCoefficients(kP, kI, kD, compensatedF);
         hw.rightShooter.setVelocityPIDFCoefficients(kP, kI, kD, compensatedF);
@@ -48,7 +48,7 @@ public double atTargetDelayTime = 600;
    public double currentVelocity(){
         double leftShooterRPM = Convertor.shooterTPStoRPM(hw.leftShooter.getVelocity(AngleUnit.DEGREES));
         double rightShooterRPM = Convertor.shooterTPStoRPM(hw.rightShooter.getVelocity(AngleUnit.DEGREES));
-        return  (leftShooterRPM + rightShooterRPM) / 2;
+        return  (rightShooterRPM + rightShooterRPM) / 2;
     }
     public boolean atTargetVel(){
         double error = targetVelRPM - currentVelocity();

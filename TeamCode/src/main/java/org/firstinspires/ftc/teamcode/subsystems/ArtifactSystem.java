@@ -84,7 +84,7 @@ public class ArtifactSystem {
     // =========================================================================
     public double rpm                    = SHORT_RPM;
     public static final double SHORT_RPM = 2100;
-    public static final double LONG_RPM  = 2700;
+    public static final double LONG_RPM  = 2630;
     // Add near your other fields
     public double currentDistance = 48; // default fallback
 
@@ -115,6 +115,7 @@ public class ArtifactSystem {
     private static final double MANUAL_TRANSFER_SEC = 0.4;
     public double shootphase1 = 0.23; //0.23
     public double shootphase2 = 0.25; //0.25
+    boolean dynamicShoot = false;
 
     // =========================================================================
     // COLOUR DETECTION INTERNALS
@@ -184,13 +185,21 @@ public class ArtifactSystem {
         if (rightEdge && (robotState == RobotState.SHOOTING || robotState == RobotState.MANUAL)) {
             enterIntakeState();
         } else if (leftEdge && robotState == RobotState.INTAKE) {
-            rpm = SHORT_RPM;
+            //rpm = SHORT_RPM;
+            rpm = getRPMForDistance(currentDistance);
+            dynamicShoot = true;
             enterShootingState();
+        } else if (leftEdge && robotState == RobotState.SHOOTING) {
+            rpm = getRPMForDistance(currentDistance);
+            dynamicShoot = true;
+            shooter.setTargetVelRPM(rpm);
         } else if (upEdge) {
             if (robotState == RobotState.INTAKE) {
+                dynamicShoot = false;
                 rpm = LONG_RPM;
                 enterShootingState();
             } else if (robotState == RobotState.SHOOTING) {
+                dynamicShoot = false;
                 rpm = LONG_RPM;
                 shooter.setTargetVelRPM(rpm);
             }
@@ -212,6 +221,7 @@ public class ArtifactSystem {
             startNextAutoShot();
         } else if (downEdge && robotState == RobotState.SHOOTING) {
             rpm = SHORT_RPM;
+            dynamicShoot = false;
             shooter.setTargetVelRPM(rpm);
         }
 
@@ -376,8 +386,9 @@ public class ArtifactSystem {
     // =========================================================================
     private void updateShooting(boolean lbEdge, boolean rbEdge,
                                 boolean servoEdge, double currentTime) {
-
-        //rpm = getRPMForDistance(currentDistance);
+        if (dynamicShoot) {
+            rpm = getRPMForDistance(currentDistance);
+        }
         shooter.setTargetVelRPM(rpm);
 
         // X = full servo cycle (push down, wait, come back up) same as MANUAL state.

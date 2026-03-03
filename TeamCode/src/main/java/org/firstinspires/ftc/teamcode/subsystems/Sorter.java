@@ -18,14 +18,14 @@ public class Sorter {
     public boolean telemetryOn;
 
     // ===== PID TUNING =====
-    public static double kP = 0.00035;
+    public static double kP = 0.0003;
     public static double kI = 0.0;
     public static double kD = 0.000004;
 
     // ===== CONTROL PARAMS =====
-    public static double minPower = 0.2;   // overcome static friction
+    public static double minPower = 0.1;   // overcome static friction
     public static int slowZone = 50;        // ticks
-    public static int targetTolerance = 300;  // ticks
+    public static int targetTolerance = 200;  // ticks
     public static long settleTime = 60;      // ms
 
     public int targetTicks;
