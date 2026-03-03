@@ -1,12 +1,13 @@
 package org.firstinspires.ftc.teamcode.autonomous;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
-
+@Disabled
 @Autonomous(name = "PoseCalibration")
 public class calibrate extends LinearOpMode {
 

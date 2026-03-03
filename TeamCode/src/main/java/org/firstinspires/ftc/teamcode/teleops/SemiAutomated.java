@@ -71,8 +71,8 @@ public class SemiAutomated extends LinearOpMode {
 
             if (gamepad2.left_bumper) sorter.moveDegrees(120);
             if (gamepad2.right_bumper) sorter.moveDegrees(-120);
-            if (gamepad2.left_trigger > 0.1) sorter.moveDegrees(75);
-            if (gamepad2.right_trigger > 0.1) sorter.moveDegrees(-75);
+            if (gamepad2.left_trigger > 0.1) sorter.moveDegrees(60);
+            if (gamepad2.right_trigger > 0.1) sorter.moveDegrees(60);
             if (gamepad2.x) sorter.transferArtifact(currentTime);
 
             sleep(10);

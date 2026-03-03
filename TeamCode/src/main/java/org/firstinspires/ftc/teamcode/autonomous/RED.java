@@ -5,7 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
 import org.firstinspires.ftc.teamcode.autonomous.BaseAutonomous;
 
-@Autonomous(name = "RED")
+@Autonomous(name = "AutonomousRED")
 public class RED extends BaseAutonomous {
 
     @Override
