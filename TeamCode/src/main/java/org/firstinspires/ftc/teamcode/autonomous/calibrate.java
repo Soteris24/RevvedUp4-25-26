@@ -13,7 +13,7 @@ public class calibrate extends LinearOpMode {
 
     private Follower follower;
 
-    private final Pose startPose = new Pose(0, 0, Math.toRadians(45));
+    private final Pose startPose = new Pose(0, 0, Math.toRadians(0));
 
     @Override
     public void runOpMode() {

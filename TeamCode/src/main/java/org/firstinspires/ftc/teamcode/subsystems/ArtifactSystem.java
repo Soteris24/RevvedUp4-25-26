@@ -89,7 +89,7 @@ public class ArtifactSystem {
     public double currentDistance = 48; // default fallback
 
     private static final double[] DISTANCE_TABLE = { 24,   48,   72,   96   };
-    private static final double[] RPM_TABLE      = { 2100, 2350, 2550, 2800 };
+    private static final double[] RPM_TABLE      = { 2100, 2350, 2550, 2700 };
 
 
 
@@ -184,6 +184,8 @@ public class ArtifactSystem {
         // --- Global state transitions ---
         if (rightEdge && (robotState == RobotState.SHOOTING || robotState == RobotState.MANUAL)) {
             enterIntakeState();
+
+
         } else if (leftEdge && robotState == RobotState.INTAKE) {
             //rpm = SHORT_RPM;
             rpm = getRPMForDistance(currentDistance);
@@ -193,6 +195,8 @@ public class ArtifactSystem {
             rpm = getRPMForDistance(currentDistance);
             dynamicShoot = true;
             shooter.setTargetVelRPM(rpm);
+
+
         } else if (upEdge) {
             if (robotState == RobotState.INTAKE) {
                 dynamicShoot = false;
@@ -203,26 +207,31 @@ public class ArtifactSystem {
                 rpm = LONG_RPM;
                 shooter.setTargetVelRPM(rpm);
             }
+
+
         } else if (bEdge && robotState == RobotState.SHOOTING && shootSubState == ShootSubState.IDLE) {
             // B = auto fire all — shoots every remaining artifact in sequence
             autoFire = true;
             pendingShootColor = null;
             storedArtifacts[0] = "G";
-
             storedArtifacts[1] = "P";
-
             storedArtifacts[2] = "P";
-
             artifactCount = 3;
-
             nextSlotIndex = 0;
-
             currentSlot = 0;
             startNextAutoShot();
-        } else if (downEdge && robotState == RobotState.SHOOTING) {
-            rpm = SHORT_RPM;
-            dynamicShoot = false;
-            shooter.setTargetVelRPM(rpm);
+
+
+        } else if (downEdge) {
+            if (robotState == RobotState.INTAKE) {
+                dynamicShoot = false;
+                rpm = SHORT_RPM;
+                enterShootingState();
+            } else if (robotState == RobotState.SHOOTING) {
+                dynamicShoot = false;
+                rpm = SHORT_RPM;
+                shooter.setTargetVelRPM(rpm);
+            }
         }
 
         // --- Per-state update ---
@@ -575,7 +584,7 @@ public class ArtifactSystem {
         hw.sorterTransfer.setPosition(RobotHardware.transferIdle);
 
         if (offSetApplied) {
-            sorter.moveDegrees(60);
+            sorter.moveDegrees(55);
         }
 
         transferInProgress = false;
@@ -633,9 +642,9 @@ public class ArtifactSystem {
         if (!offSetApplied) {
             double deg;
             switch (slot) {
-                case 0:  deg = -60;  break;
-                case 1:  deg =  60;  break;
-                case 2:  deg = 180;  break;
+                case 0:  deg = -55;  break;
+                case 1:  deg =  65;  break;
+                case 2:  deg = 185;  break;
                 default: deg =   0;
             }
             sorter.moveDegrees(deg);
@@ -655,9 +664,9 @@ public class ArtifactSystem {
         if (!offSetApplied) {
             double deg;
             switch (slot) {
-                case 0:  deg = -60;  break;
-                case 1:  deg =  60;  break;
-                case 2:  deg = 180;  break;
+                case 0:  deg = -55;  break;
+                case 1:  deg =  65;  break;
+                case 2:  deg = 185;  break;
                 default: deg =   0;
             }
             sorter.moveDegrees(deg);

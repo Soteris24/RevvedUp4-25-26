@@ -244,7 +244,7 @@ public abstract class BaseAutonomous extends LinearOpMode {
             follower.setMaxPower(0.8);
             artifactSystem.artifactCount = 3;
             goToPose(shootingPose, "linear");
-            dpadLeft = true; // enter SHOOT state
+            dpadDown = true; // enter SHOOT state
         }
 
         boolean arrived = hasReachedTarget();
@@ -309,7 +309,7 @@ public abstract class BaseAutonomous extends LinearOpMode {
             intakeReverse = true;
             follower.setMaxPower(1);
             goToPose(shootingPose, "linear");
-            dpadLeft = true; // re-enter SHOOT state
+            dpadDown = true; // re-enter SHOOT state
         }
 
         if (hasReachedTarget()) {
