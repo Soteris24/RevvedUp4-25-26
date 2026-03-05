@@ -87,9 +87,10 @@ public class DriverOp extends LinearOpMode {
             //   right_bumper INTAKE: manual PURPLE  | SHOOT: fire PURPLE
             //   left_trigger  INTAKE: inspect GREEN  | MANUAL: rotate left
             //   right_trigger INTAKE: inspect PURPLE | MANUAL: rotate right
-            //   y — toggle intake (INTAKE) / fire current slot (MANUAL)
+            //   y — toggle intake (INTAKE)
             //   x — fire current slot in SHOOT state (no rotation)
             //   a — reverse intake (hold)
+            //   b — rapid fire shoot (SHOOT)
             artifactSystem.update(
                     gamepad2.dpad_up,
                     gamepad2.dpad_down,
@@ -111,7 +112,7 @@ public class DriverOp extends LinearOpMode {
             follower.setMaxPower(1);
             sorter.update();
             follower.update();
-            drivetrain.telemetryOn = true;
+            drivetrain.telemetryOn = false;
         }
 
         drivetrain.stop();

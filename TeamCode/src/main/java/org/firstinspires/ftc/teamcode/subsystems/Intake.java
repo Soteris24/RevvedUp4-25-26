@@ -17,6 +17,7 @@ public class Intake {
     public double forwardPower = 1;
     public double reversePower = -1;
     public double reverseDuration = 0.5;
+    boolean stopRequested = false;
 
 
     public Intake(RobotHardware hw, boolean telemetryOn) {
@@ -29,16 +30,27 @@ public class Intake {
             intakeOn = !intakeOn;
         }
 
-        if (reverseButton) {
+        if (reverseButton && !reversing) {
             reversing = true;
             reverseTime = currentTime + reverseDuration;
         }
         if (reversing) {
             hw.intake.setPower(reversePower);
+
             if (!reverseButton && currentTime >= reverseTime) {
                 reversing = false;
+
+                if (stopRequested) {
+                    intakeOn = false;
+                    stopRequested = false;
+                }
             }
         } else {
+            if (stopRequested) {
+                intakeOn = false;
+                stopRequested = false;
+            }
+
             hw.intake.setPower(intakeOn ? forwardPower : 0);
         }
         if (this.telemetryOn) {
@@ -49,9 +61,23 @@ public class Intake {
     }
 
     public void stop() {
-        hw.intake.setPower(0);
-        intakeOn = false;
-        reversing = false;
-        reverseTime = 0;
+        stopRequested = true;
+    }
+    public void reverseIntake(double currentTime) {
+
+        if (!reversing) {
+            intakeOn = false;
+            reversing = true;
+            reverseTime = currentTime + reverseDuration;
+        }
+
+        if (reversing) {
+            hw.intake.setPower(reversePower);
+
+            if (currentTime >= reverseTime) {
+                reversing = false;
+                hw.intake.setPower(0);
+            }
+        }
     }
 }

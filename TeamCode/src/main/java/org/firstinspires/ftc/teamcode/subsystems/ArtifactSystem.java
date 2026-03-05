@@ -560,6 +560,7 @@ public class ArtifactSystem {
     private void enterShootingState() {
         robotState           = RobotState.SHOOTING;
         shootSubState        = ShootSubState.IDLE;
+//        intake.intake(false, true, currentTime);
         intake.stop();
         sorterMoved          = false;
         transferInProgress   = false;

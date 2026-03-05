@@ -305,8 +305,8 @@ public abstract class BaseAutonomous extends LinearOpMode {
     private void runReturnToShoot() {
         if (!stateStarted) {
             stateStarted = true;
-            intakeToggle = true; // turn intake off
             intakeReverse = true;
+            intakeToggle = true; // turn intake off
             follower.setMaxPower(1);
             goToPose(shootingPose, "linear");
             dpadDown = true; // re-enter SHOOT state
