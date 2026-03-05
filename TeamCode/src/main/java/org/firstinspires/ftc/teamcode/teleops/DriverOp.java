@@ -8,6 +8,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.RobotHardware;
+import org.firstinspires.ftc.teamcode.Sorterold;
 import org.firstinspires.ftc.teamcode.mathUtils.ShooterCalculator;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.subsystems.ArtifactSystem;
@@ -20,8 +21,9 @@ import org.firstinspires.ftc.teamcode.subsystems.Sorter;
 @TeleOp(name = "DriverOp")
 public class DriverOp extends LinearOpMode {
 
+    // ── Shared subsystems ──────────────────────────────────────────────────────
     RobotHardware     hw;
-    Follower         follower;
+    Follower          follower;
     Drivetrain        drivetrain;
     Sorter            sorter;
     Shooter2          shooter;
@@ -29,95 +31,206 @@ public class DriverOp extends LinearOpMode {
     ArtifactSystem    artifactSystem;
     ShooterCalculator calc;
 
+    PanelsTelemetry tel = PanelsTelemetry.INSTANCE;
+
+    // ── DriverOp tables ───────────────────────────────────────────────────────
     double[] distanceTable = {24, 48, 72, 144};
     double[] rpmTable      = {1650, 1850, 2050, 2650};
 
-    PanelsTelemetry tel = PanelsTelemetry.INSTANCE;
+    // ── ManualOp state ────────────────────────────────────────────────────────
+    public static int ShooterFarRPM   = 2700;
+    public static int ShooterCloseRPM = 2100;
+
+    private boolean lastIntakeButton = false;
+    private boolean intakeOn         = false;
+    private boolean reversing        = false;
+    private double  reverseTime      = 0;
+    private int     transferState    = 0;
+
+    // ── Mode switching ────────────────────────────────────────────────────────
+    private enum Mode { DRIVER, MANUAL }
+    private Mode    mode           = Mode.DRIVER;
+    private boolean lastL3         = false;
+    private boolean lastR3         = false;
+
+    // ─────────────────────────────────────────────────────────────────────────
 
     @Override
     public void runOpMode() {
         hw = new RobotHardware();
         hw.init(hardwareMap);
 
-        follower = Constants.createFollower(hardwareMap);
-
+        follower   = Constants.createFollower(hardwareMap);
         drivetrain = new Drivetrain(hw, follower, true);
-        intake         = new Intake(hw, false);
-        sorter         = new Sorter(hw, false);
-        shooter        = new Shooter2(hw, false);
+        intake     = new Intake(hw, false);
+        sorter     = new Sorter(hw, false);
+        shooter    = new Shooter2(hw, false);
         artifactSystem = new ArtifactSystem(hw, telemetry, sorter, shooter, intake, false);
-        calc           = new ShooterCalculator(distanceTable, rpmTable);
+        calc       = new ShooterCalculator(distanceTable, rpmTable);
+        follower.setPose(new Pose(-35, 0, 0));
+        shooter.setTargetVelRPM(0);
 
         waitForStart();
 
         while (opModeIsActive()) {
             double currentTime = getRuntime();
 
-            shooter.setPIDFCoefficients();
+            // ── Mode toggle (gamepad1 L3 → MANUAL, R3 → DRIVER) ──────────────
+            boolean l3 = gamepad2.left_stick_button;
+            boolean r3 = gamepad2.right_stick_button;
 
-            // --- Drivetrain (gamepad1) ---
+            if (l3 && !lastL3) {
+                mode = Mode.MANUAL;
+                telemetry.addData("[MODE]", "MANUAL (backup)");
+            }
+            if (r3 && !lastR3) {
+                mode = Mode.DRIVER;
+                telemetry.addData("[MODE]", "DRIVER (auto)");
+            }
+            lastL3 = l3;
+            lastR3 = r3;
+
+            telemetry.addData("Mode", mode);
+            telemetry.update();
+
+            // ── Shared drivetrain inputs ──────────────────────────────────────
             double y  = -gamepad1.left_stick_y;
             double x  =  gamepad1.left_stick_x;
             double rx =  gamepad1.right_stick_x;
 
-            double rotInput = rx;
-
-            if (gamepad1.a) {
-                rotInput = drivetrain.facePoint(25+15, 0); // returns a rotation power
+            if (mode == Mode.DRIVER) {
+                runDriverMode(y, x, rx, currentTime);
+            } else {
+                runManualMode(y, x, rx, currentTime);
             }
-            if (gamepad1.b) {
-                rotInput = drivetrain.facePoint(0, 0); // returns a rotation power
+            if (r3) {
+                sorter.resetPID();
             }
-
-            drivetrain.drive(y, x, rotInput);
-
-
-            Pose currentPose = follower.getPose();
-            double dx = 0 - currentPose.getX(); // goal coordinates
-            double dy = 0 - currentPose.getY();
-            artifactSystem.currentDistance = Math.hypot(dx, dy);
-
-            // --- ArtifactSystem (gamepad2) ---
-            // Button map:
-            //   dpad_up    — enter SHOOT (long RPM) from INTAKE / SET long  RPM in SHOOT
-            //   dpad_down  — SET short RPM in SHOOT
-            //   dpad_left  — enter SHOOT (short RPM) from INTAKE
-            //   dpad_right — exit SHOOT / MANUAL → INTAKE
-            //   left_bumper  INTAKE: manual GREEN   | SHOOT: fire GREEN
-            //   right_bumper INTAKE: manual PURPLE  | SHOOT: fire PURPLE
-            //   left_trigger  INTAKE: inspect GREEN  | MANUAL: rotate left
-            //   right_trigger INTAKE: inspect PURPLE | MANUAL: rotate right
-            //   y — toggle intake (INTAKE)
-            //   x — fire current slot in SHOOT state (no rotation)
-            //   a — reverse intake (hold)
-            //   b — rapid fire shoot (SHOOT)
-            artifactSystem.update(
-                    gamepad2.dpad_up,
-                    gamepad2.dpad_down,
-                    gamepad2.dpad_left,
-                    gamepad2.dpad_right,
-                    gamepad2.left_trigger  > 0.5,
-                    gamepad2.right_trigger > 0.5,
-                    gamepad2.left_bumper,
-                    gamepad2.right_bumper,
-                    gamepad2.y,           // intake toggle (INTAKE) / fire current slot (MANUAL)
-                    gamepad2.x,           // fire current slot (SHOOT)
-                    gamepad2.a,           // reverse intake
-                    gamepad2.b,           // auto fire all
-                    currentTime
-            );
-            if (gamepad1.a) {
-                drivetrain.drive(y, x, rotInput);
-            }
-            follower.setMaxPower(1);
-            sorter.update();
-            follower.update();
-            drivetrain.telemetryOn = false;
         }
 
+        // ── Cleanup ───────────────────────────────────────────────────────────
         drivetrain.stop();
         sorter.resetPID();
         artifactSystem.resetSlot();
         intake.stop();
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    //  DRIVER MODE  (original DriverOp logic)
+    // ══════════════════════════════════════════════════════════════════════════
+    private void runDriverMode(double y, double x, double rx, double currentTime) {
+        shooter.setPIDFCoefficients();
+
+        double rotInput = rx;
+        if (gamepad1.a) rotInput = drivetrain.facePoint(8, 0);
+
+        if (gamepad1.b) {
+            follower.setPose(new Pose(0, 0, 0));
+        }
+        drivetrain.drive(y, x, rotInput);
+
+        Pose currentPose = follower.getPose();
+        double dx = 0 - currentPose.getX();
+        double dy = 0 - currentPose.getY();
+        artifactSystem.currentDistance = Math.hypot(dx, dy);
+
+        artifactSystem.update(
+                gamepad2.dpad_up,
+                gamepad2.dpad_down,
+                gamepad2.dpad_left,
+                gamepad2.dpad_right,
+                gamepad2.left_trigger  > 0.5,
+                gamepad2.right_trigger > 0.5,
+                gamepad2.left_bumper,
+                gamepad2.right_bumper,
+                gamepad2.y,
+                gamepad2.x,
+                gamepad2.a,
+                gamepad2.b,
+                currentTime
+        );
+
+        follower.setMaxPower(1);
+        sorter.update();
+        follower.update();
+        drivetrain.telemetryOn = false;
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    //  MANUAL MODE  (original ManualOp logic)
+    // ══════════════════════════════════════════════════════════════════════════
+    private void runManualMode(double y, double x, double rx, double currentTime) {
+        manualDrivetrain(y, x, rx);
+        manualIntake(gamepad2.y, gamepad2.a, currentTime);
+        manualSorter();
+        manualTransfer();
+        manualShooter();
+        updateColorDetection();
+    }
+
+    private void manualDrivetrain(double y, double x, double rx) {
+        hw.leftFront.setPower( y + x + rx);
+        hw.leftBack.setPower(  y - x + rx);
+        hw.rightFront.setPower(y - x - rx);
+        hw.rightBack.setPower( y + x - rx);
+    }
+
+    private void manualShooter() {
+        if      (gamepad2.dpad_up)   shooter.setTargetVelRPM(ShooterFarRPM);
+        else if (gamepad2.dpad_left) shooter.setTargetVelRPM(ShooterCloseRPM);
+        else if (gamepad2.dpad_down) shooter.setTargetVelRPM(0);
+    }
+
+    private void manualIntake(boolean button, boolean reverseButton, double currentTime) {
+        if (button && !lastIntakeButton) intakeOn = !intakeOn;
+
+        if (reverseButton) {
+            reversing   = true;
+            reverseTime = currentTime + 0.5;
+        }
+
+        if (reversing) {
+            hw.intake.setPower(-1);
+            if (!reverseButton && currentTime >= reverseTime) reversing = false;
+        } else {
+            hw.intake.setPower(intakeOn ? 1 : 0);
+        }
+
+        if (intakeOn) shooter.setTargetVelRPM(100);
+
+        lastIntakeButton = button;
+    }
+
+    private void manualTransfer() {
+        switch (transferState) {
+            case 0:
+                if (gamepad2.x) {
+                    hw.sorterTransfer.setPosition(RobotHardware.transferPush);
+                    hw.timer.reset();
+                    transferState = 1;
+                }
+                break;
+            case 1:
+                if (hw.timer.seconds() >= 0.3) {
+                    hw.sorterTransfer.setPosition(RobotHardware.transferIdle);
+                    hw.timer.reset();
+                    transferState = 0;
+                }
+                break;
+        }
+    }
+
+    private void manualSorter() {
+        hw.sorter.setPower((gamepad2.left_trigger - gamepad2.right_trigger) / 5);
+    }
+
+    private void updateColorDetection() {
+        int red   = hw.colorSensor.red();
+        int green = hw.colorSensor.green();
+        int blue  = hw.colorSensor.blue();
+        int alpha = hw.colorSensor.alpha();
+
+        boolean artifactDetected = alpha > 150 && !(blue > red && blue > green);
+
     }
 }

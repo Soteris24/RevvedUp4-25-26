@@ -28,6 +28,7 @@ public class RobotHardware {
     public HardwareMap hardwareMap;
     public ElapsedTime timer = new ElapsedTime();
     public int shotsRemaining = 0;
+    public boolean reverseauton = false;
     String[] storedArtifacts = new String[3];
 
     public int artifactCount = 0;
@@ -61,7 +62,11 @@ public class RobotHardware {
 
         this.intake = hwMap.get(DcMotor.class, "intake");
 
-        this.intake.setDirection(DcMotorSimple.Direction.REVERSE);
+        if (reverseauton) {
+            this.intake.setDirection(DcMotorSimple.Direction.FORWARD);
+        } else {
+            this.intake.setDirection(DcMotorSimple.Direction.REVERSE);
+        }
 
         this.intake.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         this.intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);

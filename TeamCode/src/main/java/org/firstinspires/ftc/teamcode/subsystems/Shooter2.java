@@ -14,7 +14,7 @@ RobotHardware hw;
 public static double kP = 0.02;
 public static double kI = 0;
 public static double kD = 0.02;
-public static double kV = 10;
+public static double kV = 10.1;
 
 public double targetVelRPM;
 public double targetVelTPS;

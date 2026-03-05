@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.bylazar.configurables.annotations.Configurable;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
@@ -9,16 +10,16 @@ import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter2;
 
 import java.util.StringJoiner;
-
+@Disabled
 @Configurable
 @TeleOp(name = "ManualOp")
 public class ManualOp extends LinearOpMode {
     RobotHardware robotHardware;
 
-    Sorter sorter1;
+    Sorterold sorter1;
     Shooter2 shooter;
     Intake intake;
-    public static int ShooterFarRPM = 2700;
+    public static int ShooterFarRPM = 2600;
     public static int ShooterCloseRPM = 2100;
 
     private boolean lastY = false;
@@ -31,7 +32,7 @@ public class ManualOp extends LinearOpMode {
 
     @Override
     public void runOpMode()  {
-        this.sorter1 = new Sorter();
+        this.sorter1 = new Sorterold();
         this.robotHardware = new RobotHardware();
         this.robotHardware.init(hardwareMap);
         this.shooter = new Shooter2(robotHardware, false);

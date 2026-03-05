@@ -16,7 +16,7 @@ import java.util.Objects;
 
 @Disabled
 @TeleOp(name = "sorterTest")
-public class Sorter extends LinearOpMode {
+public class Sorterold extends LinearOpMode {
 
     RobotHardware r;
     public Convertor convertor;

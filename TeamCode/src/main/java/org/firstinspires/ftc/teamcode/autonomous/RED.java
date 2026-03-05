@@ -30,11 +30,11 @@ public class RED extends BaseAutonomous {
 
     @Override
     protected Pose getPos2() {
-        return new Pose(-20, -63, Math.toRadians(0));
+        return new Pose(-20, -61, Math.toRadians(0));
     }
 
     @Override
     protected Pose getPos2Forward() {
-        return new Pose(15, -63, Math.toRadians(0));
+        return new Pose(10, -61, Math.toRadians(0));
     }
 }

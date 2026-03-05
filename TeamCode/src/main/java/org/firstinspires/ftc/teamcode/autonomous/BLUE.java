@@ -15,7 +15,7 @@ public class BLUE extends BaseAutonomous {
 
     @Override
     protected Pose getShootingPose() {
-        return new Pose(-25, -25, Math.toRadians(45));
+        return new Pose(-28, -28, Math.toRadians(45));
     }
 
     @Override
@@ -25,7 +25,7 @@ public class BLUE extends BaseAutonomous {
 
     @Override
     protected Pose getPos1Forward() {
-        return new Pose(-38, 0, Math.toRadians(90));
+        return new Pose(-38, -3, Math.toRadians(90));
     }
 
     @Override
@@ -35,6 +35,6 @@ public class BLUE extends BaseAutonomous {
 
     @Override
     protected Pose getPos2Forward() {
-        return new Pose(-63, 15, Math.toRadians(90));
+        return new Pose(-63, 0, Math.toRadians(90));
     }
 }

@@ -16,7 +16,7 @@ import org.firstinspires.ftc.teamcode.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter2;
 import org.firstinspires.ftc.teamcode.subsystems.Sorter;
 
-public abstract class BaseAutonomous extends LinearOpMode {
+public abstract class BaseAutonomous1 extends LinearOpMode {
     protected abstract Pose getStartPose();
     protected abstract Pose getShootingPose();
     protected abstract Pose getPos1();
@@ -129,7 +129,7 @@ public abstract class BaseAutonomous extends LinearOpMode {
 
             lastArtifactCount = artifactSystem.artifactCount;
             if (intakeSlowActive) {
-                intake.forwardPower = 0.7 * (12.8 / hw.getBatteryVoltage());
+                intake.forwardPower = 0.6 * (12.8 / hw.getBatteryVoltage());
 
                 if (intakeSlowTimer.seconds() > 0.5) {
                     intakeSlowActive = false;
@@ -243,12 +243,12 @@ public abstract class BaseAutonomous extends LinearOpMode {
     private void runGoToShootingPos() {
         if (!stateStarted) {
             stateStarted = true;
-            follower.setMaxPower(1);
+            follower.setMaxPower(0.8);
             artifactSystem.artifactCount = 3;
             hw.reverseauton = false;
             intake.stop();
             goToPose(shootingPose, "linear");
-            dpadDown = true; // enter SHOOT state
+            dpadUp = true; // enter SHOOT state
         }
 
         boolean arrived = hasReachedTarget();
@@ -315,7 +315,7 @@ public abstract class BaseAutonomous extends LinearOpMode {
             //intakeReverse = true;
             follower.setMaxPower(1);
             goToPose(shootingPose, "linear");
-            dpadDown = true; // re-enter SHOOT state
+            dpadUp = true; // re-enter SHOOT state
         }
 
         if (hasReachedTarget()) {

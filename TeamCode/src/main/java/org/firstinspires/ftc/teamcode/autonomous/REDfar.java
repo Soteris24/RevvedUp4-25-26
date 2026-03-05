@@ -6,7 +6,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import org.firstinspires.ftc.teamcode.autonomous.BaseAutonomous;
 
 @Autonomous(name = "AutonomousREDfar")
-public class REDfar extends BaseAutonomous {
+public class REDfar extends BaseAutonomous1 {
 
     @Override
     protected Pose getStartPose() {
@@ -15,17 +15,17 @@ public class REDfar extends BaseAutonomous {
 
     @Override
     protected Pose getShootingPose() {
-        return new Pose(6, -0.2, Math.toRadians(-21));
+        return new Pose(6, -0.2, Math.toRadians(-28));
     }
 
     @Override
     protected Pose getPos1() {
-        return new Pose(31, -14, Math.toRadians(-90));
+        return new Pose(27, -14, Math.toRadians(-90));
     }
 
     @Override
     protected Pose getPos1Forward() {
-        return new Pose(31, -44, Math.toRadians(-90));
+        return new Pose(27, -44, Math.toRadians(-90));
     }
 
     @Override

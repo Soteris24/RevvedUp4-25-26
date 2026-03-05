@@ -15,7 +15,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 public class DecodePrototype extends LinearOpMode {
 
     RobotHardware robot;
-    Sorter sort;
+    Sorterold sort;
 
     private boolean lastY = false;
     private boolean intakeOn = false;
