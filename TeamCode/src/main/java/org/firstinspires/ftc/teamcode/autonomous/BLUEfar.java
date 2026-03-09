@@ -15,17 +15,17 @@ public class BLUEfar extends BaseAutonomous1 {
 
     @Override
     protected Pose getShootingPose() {
-        return new Pose(4, 0.2, Math.toRadians(30));
+        return new Pose(4, 1, Math.toRadians(28));
     }
 
     @Override
     protected Pose getPos1() {
-        return new Pose(26, 20, Math.toRadians(90));
+        return new Pose(26, 10, Math.toRadians(90));
     }
 
     @Override
     protected Pose getPos1Forward() {
-        return new Pose(26, 40, Math.toRadians(90));
+        return new Pose(26, 35, Math.toRadians(90));
     }
 
     @Override

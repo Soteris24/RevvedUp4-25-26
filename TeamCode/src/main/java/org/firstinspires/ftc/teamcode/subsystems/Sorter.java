@@ -14,19 +14,20 @@ public class Sorter {
 
     public RobotHardware hw;
     public PIDController sorterPID;
+    //RobotHardware hw;
     private final PanelsTelemetry panelsTelemetry = PanelsTelemetry.INSTANCE;
     public boolean telemetryOn;
 
     // ===== PID TUNING =====
     public static double kP = 0.0003; //0.0003
     public static double kI = 0.0;
-    public static double kD = 0.000008; //0.000004
+    public static double kD = 0.000006; //0.000004
 
     // ===== CONTROL PARAMS =====
     public static double minPower = 0.1;   // overcome static friction
     public static int slowZone = 50;        // ticks
     public static int targetTolerance = 200;  // ticks
-    public static long settleTime = 60;      // ms
+    public static long settleTime = 50;      // ms
 
     public int targetTicks;
     private long lastTime;
@@ -43,7 +44,8 @@ public class Sorter {
 
         hw.sorter.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-        sorterPID = new PIDController(new PIDCoefficients(kP, kI, kD));
+        sorterPID = new PIDController(new PIDCoefficients(kP , kI, kD)); //* (12.8 / hw.getBatteryVoltage())
+
 
         targetTicks = hw.sorter.getCurrentPosition();
         lastTime = System.currentTimeMillis();
@@ -55,7 +57,7 @@ public class Sorter {
         double dt = Math.max((now - lastTime) / 1000.0, 0.001);
         lastTime = now;
 
-        sorterPID.setCoefficients(new PIDCoefficients(kP, kI, kD));
+        sorterPID.setCoefficients(new PIDCoefficients(kP , kI, kD));
 
         int position = hw.sorter.getCurrentPosition();
         double error = targetTicks - position;

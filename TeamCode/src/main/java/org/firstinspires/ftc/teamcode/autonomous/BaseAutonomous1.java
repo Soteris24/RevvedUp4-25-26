@@ -128,14 +128,14 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
             }
 
             lastArtifactCount = artifactSystem.artifactCount;
-            if (intakeSlowActive) {
-                intake.forwardPower = 0.6 * (12.8 / hw.getBatteryVoltage());
-
-                if (intakeSlowTimer.seconds() > 0.5) {
-                    intakeSlowActive = false;
-                    intake.forwardPower = 0.8 * (12.8 / hw.getBatteryVoltage());
-                }
-            }
+//            if (intakeSlowActive) {
+//                intake.forwardPower = 0.8 * (13 / hw.getBatteryVoltage());
+//
+//                if (intakeSlowTimer.seconds() > 0.5) {
+//                    intakeSlowActive = false;
+//                    intake.forwardPower = 0.8 * (13 / hw.getBatteryVoltage());
+//                }
+//            }
 
             // Save for next loop
             lastButtonB       = buttonB;
@@ -261,7 +261,7 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
 
         if (arrived && !artifactSystem.isActivelyShooting() && artifactSystem.artifactCount == 0) {
             if      (currentCycle == 0) { currentCycle = 1; transitionToState(AutoState.GO_TO_COLLECTION); }
-            else if (currentCycle == 1) { currentCycle = 2; transitionToState(AutoState.GO_TO_COLLECTION); }
+            else if (currentCycle == 1) { currentCycle = 2; transitionToState(AutoState.RETURN_HOME); }
             else                        { transitionToState(AutoState.RETURN_HOME); }
         }
 
@@ -281,6 +281,7 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
 
         if (hasReachedTarget()) {
             intake.forwardPower = 1.0;
+            follower.setMaxPower(1);
             intakeToggle = true;
             transitionToState(AutoState.COLLECT_BALLS);
         }
@@ -294,7 +295,7 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
     private void runCollectBalls() {
         if (!stateStarted) {
             stateStarted = true;
-            follower.setMaxPower(0.25 * (12.8 / hw.getBatteryVoltage()));
+            follower.setMaxPower(0.26* (12.8 / hw.getBatteryVoltage() / 1.05)); //
             if      (currentCycle == 1) goToPose(pos1Forward, "linear");
             else if (currentCycle == 2) goToPose(pos2Forward, "linear");
         } else if (artifactSystem.artifactCount >= 3
@@ -310,10 +311,10 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
         if (!stateStarted) {
             stateStarted = true;
             //intakeToggle = true; // turn intake off
-            //intake.stop();
+            //intake.stop();f
             //hw.reverseauton = true;
             //intakeReverse = true;
-            follower.setMaxPower(1);
+            follower.setMaxPower(0.8);
             goToPose(shootingPose, "linear");
             dpadUp = true; // re-enter SHOOT state
         }
@@ -333,7 +334,7 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
             stateStarted = true;
             dpadRight = true;
             follower.setMaxPower(1.0);
-            goToPose(shootingPose, "constant");
+            goToPose(pos1, "linear");
         }
 
         if (hasReachedTarget()) {
@@ -356,7 +357,6 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
         telemetry.addData("Total Runtime", "%.1f seconds", runtime.seconds());
         telemetry.addData("Cycles Completed", currentCycle);
         telemetry.update();
-        sleep(1000);
     }
 
     private void transitionToState(AutoState newState) {

@@ -15,26 +15,26 @@ public class RED extends BaseAutonomous {
 
     @Override
     protected Pose getShootingPose() {
-        return new Pose(-25, -25, Math.toRadians(45));
+        return new Pose(-28, -28, Math.toRadians(45));
     }
 
     @Override
     protected Pose getPos1() {
-        return new Pose(-20, -38, Math.toRadians(0));
+        return new Pose(-23, -36, Math.toRadians(-1));
     }
 
     @Override
     protected Pose getPos1Forward() {
-        return new Pose(6, -38, Math.toRadians(0));
+        return new Pose(3, -37, Math.toRadians(-3));
     }
 
     @Override
     protected Pose getPos2() {
-        return new Pose(-20, -61, Math.toRadians(0));
+        return new Pose(-22, -59, Math.toRadians(-1));
     }
 
     @Override
     protected Pose getPos2Forward() {
-        return new Pose(10, -61, Math.toRadians(0));
+        return new Pose(2, -60, Math.toRadians(-3));
     }
 }

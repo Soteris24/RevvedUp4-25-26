@@ -20,12 +20,12 @@ public class REDfar extends BaseAutonomous1 {
 
     @Override
     protected Pose getPos1() {
-        return new Pose(27, -14, Math.toRadians(-90));
+        return new Pose(26, -14, Math.toRadians(-90));
     }
 
     @Override
     protected Pose getPos1Forward() {
-        return new Pose(27, -44, Math.toRadians(-90));
+        return new Pose(25, -44, Math.toRadians(-90));
     }
 
     @Override

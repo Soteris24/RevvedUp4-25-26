@@ -16,7 +16,7 @@ import org.firstinspires.ftc.teamcode.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter2;
 import org.firstinspires.ftc.teamcode.subsystems.Sorter;
 
-public abstract class BaseAutonomous extends LinearOpMode {
+public abstract class BaseAutonomous2 extends LinearOpMode {
     protected abstract Pose getStartPose();
     protected abstract Pose getShootingPose();
     protected abstract Pose getPos1();
@@ -248,7 +248,7 @@ public abstract class BaseAutonomous extends LinearOpMode {
             hw.reverseauton = false;
             intake.stop();
             goToPose(shootingPose, "linear");
-            dpadDown = true; // enter SHOOT state
+            dpadUp = true; // enter SHOOT state
         }
 
         boolean arrived = hasReachedTarget();
@@ -260,8 +260,8 @@ public abstract class BaseAutonomous extends LinearOpMode {
         }
 
         if (arrived && !artifactSystem.isActivelyShooting() && artifactSystem.artifactCount == 0) {
-            if      (currentCycle == 0) { currentCycle = 1; transitionToState(AutoState.GO_TO_COLLECTION); }
-            else if (currentCycle == 1) { currentCycle = 2; transitionToState(AutoState.GO_TO_COLLECTION); }
+            if      (currentCycle == 0) { currentCycle = 1; transitionToState(AutoState.RETURN_HOME); }
+            else if (currentCycle == 1) { currentCycle = 2; transitionToState(AutoState.RETURN_HOME); }
             else                        { transitionToState(AutoState.RETURN_HOME); }
         }
 
@@ -295,7 +295,7 @@ public abstract class BaseAutonomous extends LinearOpMode {
     private void runCollectBalls() {
         if (!stateStarted) {
             stateStarted = true;
-            follower.setMaxPower(0.26 * (12.8 / hw.getBatteryVoltage() / 1.05)); //
+            follower.setMaxPower(0.26* (12.6 / hw.getBatteryVoltage() / 1.05)); //
             if      (currentCycle == 1) goToPose(pos1Forward, "linear");
             else if (currentCycle == 2) goToPose(pos2Forward, "linear");
         } else if (artifactSystem.artifactCount >= 3
@@ -311,13 +311,12 @@ public abstract class BaseAutonomous extends LinearOpMode {
         if (!stateStarted) {
             stateStarted = true;
             //intakeToggle = true; // turn intake off
-            //intake.stop();
+            //intake.stop();f
             //hw.reverseauton = true;
             //intakeReverse = true;
-            follower.setMaxPower(1);
+            follower.setMaxPower(0.5);
             goToPose(shootingPose, "linear");
-            sleep(200);
-            dpadDown = true; // re-enter SHOOT state
+            dpadUp = true; // re-enter SHOOT state
         }
 
         if (hasReachedTarget()) {
@@ -335,7 +334,7 @@ public abstract class BaseAutonomous extends LinearOpMode {
             stateStarted = true;
             dpadRight = true;
             follower.setMaxPower(1.0);
-            goToPose(shootingPose, "constant");
+            goToPose(pos2, "linear");
         }
 
         if (hasReachedTarget()) {

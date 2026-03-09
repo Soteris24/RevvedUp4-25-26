@@ -54,4 +54,10 @@ public class Intake {
         reversing = false;
         reverseTime = 0;
     }
+    public void slow() {
+        hw.intake.setPower(0.3);
+        intakeOn = false;
+        reversing = false;
+        reverseTime = 0;
+    }
 }

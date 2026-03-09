@@ -83,13 +83,13 @@ public class ArtifactSystem {
     // SHOOTING INTERNALS
     // =========================================================================
     public double rpm                    = SHORT_RPM;
-    public static final double SHORT_RPM = 2100;
-    public static final double LONG_RPM  = 2550;
+    public static final double SHORT_RPM = 2030;
+    public static final double LONG_RPM  = 2450;
     // Add near your other fields
     public double currentDistance = 48; // default fallback
 
     private static final double[] DISTANCE_TABLE = { 24,   48,   72,   96   };
-    private static final double[] RPM_TABLE      = { 2050, 2200, 2450, 2550 };
+    private static final double[] RPM_TABLE      = { 2000, 2100, 2300, 2500 };
 
 
 
@@ -366,9 +366,11 @@ public class ArtifactSystem {
                 break;
 
             case RETURN:
+                intake.intakeOn = false;
+                intake.slow();
                 if (sorter.atTarget()) {
+                    intake.intakeOn = true;
                     if (artifactCount >= 3) {
-
                         intakeSubState = IntakeSubState.FULL;
                     } else {
                         artifactCount++;
@@ -606,7 +608,7 @@ public class ArtifactSystem {
         double d1 = hw.colorSensor.getDistance(DistanceUnit.MM);
         double d2 = hw.colorSensor2.getDistance(DistanceUnit.MM);
 
-        boolean detectedNow = (d1 < 80 && d1 > 30); // || d2 < 50
+        boolean detectedNow = (d1 < 85 && d1 > 30); // || d2 < 50
         boolean risingEdge  = detectedNow && !lastDetected;
 
         long now = System.currentTimeMillis();

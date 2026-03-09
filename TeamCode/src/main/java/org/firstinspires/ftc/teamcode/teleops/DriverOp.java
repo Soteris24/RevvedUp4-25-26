@@ -38,8 +38,8 @@ public class DriverOp extends LinearOpMode {
     double[] rpmTable      = {1650, 1850, 2050, 2650};
 
     // ── ManualOp state ────────────────────────────────────────────────────────
-    public static int ShooterFarRPM   = 2700;
-    public static int ShooterCloseRPM = 2100;
+    public static int ShooterFarRPM   = 2500;
+    public static int ShooterCloseRPM = 2000;
 
     private boolean lastIntakeButton = false;
     private boolean intakeOn         = false;
@@ -103,8 +103,13 @@ public class DriverOp extends LinearOpMode {
             } else {
                 runManualMode(y, x, rx, currentTime);
             }
-            if (r3) {
+            if (gamepad2.dpad_right) {
                 sorter.resetPID();
+            }
+            if (gamepad2.touchpad) {
+                sorter.moveDegrees(55);
+                sleep(100);
+
             }
         }
 
@@ -137,15 +142,15 @@ public class DriverOp extends LinearOpMode {
         artifactSystem.update(
                 gamepad2.dpad_up,
                 gamepad2.dpad_down,
-                gamepad2.dpad_left,
-                gamepad2.dpad_right,
+                false,
+                gamepad2.a,
                 gamepad2.left_trigger  > 0.5,
                 gamepad2.right_trigger > 0.5,
                 gamepad2.left_bumper,
                 gamepad2.right_bumper,
                 gamepad2.y,
                 gamepad2.x,
-                gamepad2.a,
+                gamepad2.x,
                 gamepad2.b,
                 currentTime
         );
