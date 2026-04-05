@@ -113,7 +113,7 @@ public class ArtifactSystem {
     private boolean manualTransferActive  = false;
     private double  manualTransferStart   = 0;
     private static final double MANUAL_TRANSFER_SEC = 0.4;
-    public double shootphase1 = 0.23; //0.23
+    public double shootphase1 = 0.21; //0.23
     public double shootphase2 = 0.25; //0.25
     boolean dynamicShoot = false;
 

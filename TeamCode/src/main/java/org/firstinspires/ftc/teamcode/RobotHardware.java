@@ -21,7 +21,7 @@ public class RobotHardware {
     public Servo sorterTransfer;
     public ColorRangeSensor colorSensor, colorSensor2;
     public static double transferIdle = 0.35;
-    public static double transferPush = 0.15; //0.25
+    public static double transferPush = 0.57; //0.25
     public static double DEG_PER_SLOT = 120;
     public int sorterTarget = 0;
 

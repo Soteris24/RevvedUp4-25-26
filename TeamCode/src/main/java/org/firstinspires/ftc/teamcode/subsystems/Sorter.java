@@ -21,7 +21,7 @@ public class Sorter {
     // ===== PID TUNING =====
     public static double kP = 0.0003; //0.0003
     public static double kI = 0.0;
-    public static double kD = 0.000006; //0.000004
+    public static double kD = 0.00001; //0.000004
 
     // ===== CONTROL PARAMS =====
     public static double minPower = 0.1;   // overcome static friction

@@ -4,8 +4,11 @@ import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
+import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.RobotHardware;
 import org.firstinspires.ftc.teamcode.Sorterold;
@@ -16,6 +19,8 @@ import org.firstinspires.ftc.teamcode.subsystems.Drivetrain;
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter2;
 import org.firstinspires.ftc.teamcode.subsystems.Sorter;
+
+import java.util.List;
 
 @Configurable
 @TeleOp(name = "DriverOp")
@@ -55,6 +60,9 @@ public class DriverOp extends LinearOpMode {
 
     // ─────────────────────────────────────────────────────────────────────────
 
+    public List<LynxModule> allHubs;
+    ElapsedTime loopTimer = new ElapsedTime();
+
     @Override
     public void runOpMode() {
         hw = new RobotHardware();
@@ -70,9 +78,18 @@ public class DriverOp extends LinearOpMode {
         follower.setPose(new Pose(-35, 0, 0));
         shooter.setTargetVelRPM(0);
 
+        allHubs = hardwareMap.getAll(LynxModule.class);
+        for (LynxModule hub : allHubs) {
+            hub.setBulkCachingMode(LynxModule.BulkCachingMode.AUTO);
+        }
+
         waitForStart();
 
         while (opModeIsActive()) {
+            allHubs = hardwareMap.getAll(LynxModule.class);
+            for (LynxModule hub : allHubs) {
+                hub.setBulkCachingMode(LynxModule.BulkCachingMode.AUTO);
+            }
             double currentTime = getRuntime();
 
             // ── Mode toggle (gamepad1 L3 → MANUAL, R3 → DRIVER) ──────────────
@@ -90,8 +107,12 @@ public class DriverOp extends LinearOpMode {
             lastL3 = l3;
             lastR3 = r3;
 
+            double loopTime = loopTimer.milliseconds();
+
             telemetry.addData("Mode", mode);
+            telemetry.addData("Loop Time:", loopTime);
             telemetry.update();
+            loopTimer.reset();
 
             // ── Shared drivetrain inputs ──────────────────────────────────────
             double y  = -gamepad1.left_stick_y;
