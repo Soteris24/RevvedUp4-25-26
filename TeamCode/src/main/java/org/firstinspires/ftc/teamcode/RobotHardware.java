@@ -20,6 +20,7 @@ public class RobotHardware {
     public DcMotorEx sorter, leftShooter, rightShooter;
     public Servo sorterTransfer;
     public ColorRangeSensor colorSensor, colorSensor2;
+    public DistanceSensor distanceSensor;
     public static double transferIdle = 0.35;
     public static double transferPush = 0.57; //0.25
     public static double DEG_PER_SLOT = 120;
@@ -81,6 +82,7 @@ public class RobotHardware {
 
         this.colorSensor = hwMap.get(ColorRangeSensor.class, "colorSensor");
         this.colorSensor2 = hwMap.get(ColorRangeSensor.class, "colorSensor2");
+        this.distanceSensor = hwMap.get(DistanceSensor.class, "distanceSensor");
 
         this.sorter.setDirection(DcMotorSimple.Direction.REVERSE);
         this.sorter.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);

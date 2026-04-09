@@ -113,8 +113,8 @@ public class ArtifactSystem {
     private boolean manualTransferActive  = false;
     private double  manualTransferStart   = 0;
     private static final double MANUAL_TRANSFER_SEC = 0.4;
-    public double shootphase1 = 0.21; //0.23
-    public double shootphase2 = 0.25; //0.25
+    public double shootPhase1 = 0.18; //0.23
+    public double shootPhase2 = 0.19 ; //0.25
     boolean dynamicShoot = false;
 
     // =========================================================================
@@ -210,7 +210,7 @@ public class ArtifactSystem {
 
 
         } else if (bEdge && robotState == RobotState.SHOOTING && shootSubState == ShootSubState.IDLE) {
-            // B = auto fire all — shoots every remaining artifact in sequence
+            // B auto fire all
             autoFire = true;
             pendingShootColor = null;
             storedArtifacts[0] = "G";
@@ -470,7 +470,7 @@ public class ArtifactSystem {
 
             case RESET:
                 // Phase 1 — retract servo after 0.5s
-                if (transferInProgress && currentTime - transferStartTime > shootphase1) {
+                if (transferInProgress && currentTime - transferStartTime > shootPhase1) {
                     hw.sorterTransfer.setPosition(RobotHardware.transferIdle);
                     removeArtifact(currentSlot);
                     artifactCount--;
@@ -480,11 +480,11 @@ public class ArtifactSystem {
                     transferStartTime  = currentTime; // reuse timer for phase 2
                 }
                 // Phase 2 — wait for servo to physically clear the sorter before moving
-                if (!transferInProgress && currentTime - transferStartTime > shootphase2) {
+                if (!transferInProgress && currentTime - transferStartTime > shootPhase2) {
                     if (artifactCount <= 0) {
                         artifactCount = 0;
                         autoFire      = false;
-                        enterManualState();
+                        enterIntakeState();
                     } else if (autoFire) {
                         startNextAutoShot();
                     } else {
@@ -500,7 +500,7 @@ public class ArtifactSystem {
         int slot = findAnySlot();
         if (slot == -1) {
             autoFire = false;
-            enterManualState();
+            enterIntakeState();
             return;
         }
         targetSlot        = slot;
@@ -605,10 +605,11 @@ public class ArtifactSystem {
     // COLOUR DETECTION (sensor-based)
     // =========================================================================
     private void detect() {
-        double d1 = hw.colorSensor.getDistance(DistanceUnit.MM);
-        double d2 = hw.colorSensor2.getDistance(DistanceUnit.MM);
+        // double d1 = hw.colorSensor.getDistance(DistanceUnit.MM);
+        double d2 = hw.distanceSensor.getDistance(DistanceUnit.MM);
+        // double d2 = hw.colorSensor2.getDistance(DistanceUnit.MM);
 
-        boolean detectedNow = (d1 < 85 && d1 > 30); // || d2 < 50
+        boolean detectedNow = (d2 < 85 && d2 > 30); // || d2 < 50
         boolean risingEdge  = detectedNow && !lastDetected;
 
         long now = System.currentTimeMillis();
@@ -616,8 +617,8 @@ public class ArtifactSystem {
         if (!artifactPresent && risingEdge && now - lastDetectionTime > 300) {
             artifactPresent = true;
 
-            int maxGreen = Math.max(hw.colorSensor.green(), hw.colorSensor2.green());
-            int maxBlue  = Math.max(hw.colorSensor.blue(),  hw.colorSensor2.blue());
+            int maxGreen = hw.colorSensor.green();
+            int maxBlue  = hw.colorSensor.blue();
             String color = (maxGreen > maxBlue) ? "G" : "P";
 
             if (artifactCount < storedArtifacts.length) {

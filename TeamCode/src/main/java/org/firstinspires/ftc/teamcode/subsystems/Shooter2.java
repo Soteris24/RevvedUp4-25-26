@@ -96,10 +96,10 @@ public double atTargetDelayTime = 600;
     }
 
     public void updateTelemetry(){
-            panelsTelemetry.getTelemetry().addData("left shooter", Convertor.shooterTPStoRPM(hw.leftShooter.getVelocity(AngleUnit.DEGREES)));
-            panelsTelemetry.getTelemetry().addData("right shooter", Convertor.shooterTPStoRPM(hw.rightShooter.getVelocity(AngleUnit.DEGREES)));
-            panelsTelemetry.getTelemetry().addData("shooter target", targetVelRPM);
-            panelsTelemetry.getTelemetry().addData("shooter vel", currentVelocity());
-            panelsTelemetry.getTelemetry().update();
+//        panelsTelemetry.getTelemetry().addData("left shooter", Convertor.shooterTPStoRPM(hw.leftShooter.getVelocity(AngleUnit.DEGREES)));
+//        panelsTelemetry.getTelemetry().addData("right shooter", Convertor.shooterTPStoRPM(hw.rightShooter.getVelocity(AngleUnit.DEGREES)));
+//        panelsTelemetry.getTelemetry().addData("shooter target", targetVelRPM);
+//        panelsTelemetry.getTelemetry().addData("shooter vel", currentVelocity());
+//        panelsTelemetry.getTelemetry().update();
     }
 }
