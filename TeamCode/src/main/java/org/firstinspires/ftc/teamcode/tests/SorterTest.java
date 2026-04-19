@@ -23,7 +23,7 @@ public class SorterTest extends LinearOpMode {
     public void runOpMode()  {
         hw = new RobotHardware();
         hw.init(hardwareMap);
-        sorter = new Sorter(hw, true);
+        //sorter = new Sorter(hw, true);
 
         waitForStart();
 

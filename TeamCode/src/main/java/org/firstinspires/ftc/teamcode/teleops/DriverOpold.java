@@ -72,7 +72,7 @@ public class DriverOpold extends LinearOpMode {
         follower   = Constants.createFollower(hardwareMap);
         drivetrain = new Drivetrain(hw, follower, false);
         intake     = new Intake(hw, false);
-        sorter     = new Sorter(hw, false);
+        sorter         = new Sorter(hw, false, intake);
         shooter    = new Shooter2(hw, false);
         artifactSystem = new ArtifactSystem(hw, telemetry, sorter, shooter, intake, false);
         calc       = new ShooterCalculator(distanceTable, rpmTable);
@@ -161,21 +161,21 @@ public class DriverOpold extends LinearOpMode {
         double dy = 0 - currentPose.getY();
         artifactSystem.currentDistance = Math.hypot(dx, dy);
 
-        artifactSystem.update(
-                gamepad2.dpad_up,
-                gamepad2.dpad_down,
-                false,
-                gamepad2.a,
-                gamepad2.left_trigger  > 0.5,
-                gamepad2.right_trigger > 0.5,
-                gamepad2.left_bumper,
-                gamepad2.right_bumper,
-                gamepad2.y,
-                gamepad2.x,
-                gamepad2.x,
-                gamepad2.b,
-                currentTime
-        );
+//        artifactSystem.update(
+//                gamepad2.dpad_up,
+//                gamepad2.dpad_down,
+//                false,
+//                gamepad2.a,
+//                gamepad2.left_trigger  > 0.5,
+//                gamepad2.right_trigger > 0.5,
+//                gamepad2.left_bumper,
+//                gamepad2.right_bumper,
+//                gamepad2.y,
+//                gamepad2.x,
+//                gamepad2.x,
+//                gamepad2.b,
+//                currentTime
+//        );
 
         follower.setMaxPower(1);
         sorter.update();

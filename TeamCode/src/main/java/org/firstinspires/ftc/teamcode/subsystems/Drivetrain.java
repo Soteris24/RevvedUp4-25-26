@@ -42,7 +42,7 @@ public class Drivetrain {
         hw.leftFront.setPower(lf);
         hw.leftBack.setPower(lb);
         hw.rightFront.setPower(rf);
-        hw.rightBack.setPower(rb);
+        hw.rightBack.setPower(-rb);
 
         if (telemetryOn) {
             panelsTelemetry.getTelemetry().addData("LF", lf);
