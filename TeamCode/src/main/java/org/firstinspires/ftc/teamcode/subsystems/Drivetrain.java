@@ -85,7 +85,7 @@ public class Drivetrain {
         hw.leftFront.setPower(lf);
         hw.leftBack.setPower(lb);
         hw.rightFront.setPower(rf);
-        hw.rightBack.setPower(rb);
+        hw.rightBack.setPower(-rb);
     }
 
     public void stop() {

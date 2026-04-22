@@ -606,8 +606,8 @@ public class ArtifactSystem {
     // =========================================================================
     private void detect() {
         // double d1 = hw.colorSensor.getDistance(DistanceUnit.MM);
-        double d2 = hw.distanceSensor.getDistance(DistanceUnit.MM);
-        // double d2 = hw.colorSensor2.getDistance(DistanceUnit.MM);
+        //double d2 = hw.distanceSensor.getDistance(DistanceUnit.MM);
+        double d2 = hw.colorSensor.getDistance(DistanceUnit.MM);
 
         boolean detectedNow = (d2 < 85 && d2 > 30); // || d2 < 50
         boolean risingEdge  = detectedNow && !lastDetected;
