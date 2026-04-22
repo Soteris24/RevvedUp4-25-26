@@ -48,11 +48,6 @@ public class Intake {
         lastButton = button;
     }
 
-    public void forceReverse(double duration, double currentTime) {
-        reversing = true;
-        reverseTime = currentTime + duration;
-    }
-
     public void stop() {
         hw.intake.setPower(0);
         intakeOn = false;

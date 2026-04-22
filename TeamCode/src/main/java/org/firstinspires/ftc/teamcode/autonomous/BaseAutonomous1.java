@@ -96,7 +96,7 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
 
         drivetrain     = new Drivetrain(hw, follower, false);
         intake         = new Intake(hw, false);
-        sorter         = new Sorter(hw, false, intake);
+        sorter         = new Sorter(hw, false);
         shooter        = new Shooter2(hw, false);
         artifactSystem = new ArtifactSystem(hw, telemetry, sorter, shooter, intake, false);
 

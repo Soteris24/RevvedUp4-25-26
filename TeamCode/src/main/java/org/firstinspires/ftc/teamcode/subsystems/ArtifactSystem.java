@@ -32,6 +32,9 @@ public class ArtifactSystem {
     public int      nextSlotIndex   = 0;
     public boolean   offSetApplied   = false;
     public boolean   artifactPresent = false;
+    private final int[] insertionOrder = new int[3];
+    private int insertHead = 0;
+    private int insertTail = 0;
 
     public String[] motif         = {"G", "P", "P"};
     private int     motifProgress = 0;
@@ -145,6 +148,8 @@ public class ArtifactSystem {
     public void manualDetect(String color) {
         if (artifactCount >= storedArtifacts.length) return;
         storedArtifacts[nextSlotIndex] = color;
+        insertionOrder[insertTail % 3] = nextSlotIndex;
+        insertTail++;
         nextSlotIndex = (nextSlotIndex + 1) % 3;
         artifactPresent = true;
         lastSlotSwitchTime = System.currentTimeMillis();
@@ -169,12 +174,12 @@ public class ArtifactSystem {
     // INTERNAL STATE MACHINES
 
     private void updateIntake(double currentTime) {
-        intake.intake(false, false, currentTime);
 
         switch (intakeSubState) {
             case INTAKE:
                 if (artifactPresent) {
                     intakeRotateStartTime = currentTime;
+                    intake.slow();
                     intakeSubState = IntakeSubState.WAIT;
                 }
                 break;
@@ -189,15 +194,18 @@ public class ArtifactSystem {
                 }
                 break;
             case RETURN:
-                intake.slow();
+
                 if (sorter.atTarget()) {
+                    intake.intakeOn = true;
                     artifactCount++;
                     artifactPresent = false;
                     intakeSubState = (artifactCount >= 3) ? IntakeSubState.FULL : IntakeSubState.INTAKE;
                 }
                 break;
             case FULL:
+                artifactCount = 3;
                 intake.intakeOn = false;
+                if (sorter.atTarget()) intakeSubState = IntakeSubState.IDLE;
                 break;
             default: break;
         }
@@ -337,11 +345,19 @@ public class ArtifactSystem {
     }
 
     private void startNextAutoShot() {
-        int slot = findSlotByColor(motif[motifProgress]);
-        if (slot == -1) slot = findAnySlot();
-        if (slot == -1) { autoFire = false; enterIntakeState(); return; }
-        targetSlot = slot;
-        shootSubState = ShootSubState.MOVE_TO_SLOT;
+        // Walk insertion order from head, skip already-fired (null) slots
+        while (insertHead < insertTail) {
+            int slot = insertionOrder[insertHead % 3];
+            insertHead++;
+            if (storedArtifacts[slot] != null) {
+                targetSlot = slot;
+                shootSubState = ShootSubState.MOVE_TO_SLOT;
+                return;
+            }
+        }
+        // Nothing left
+        autoFire = false;
+        enterIntakeState();
     }
 
     private void startShot() {
@@ -357,13 +373,13 @@ public class ArtifactSystem {
         boolean detectedNow = (d2 < 85 && d2 > 30);
         long now = System.currentTimeMillis();
         if (!artifactPresent && detectedNow && !lastDetected && now - lastDetectionTime > 300) {
-            artifactPresent = true;
-            String color = (hw.colorSensor.green() > hw.colorSensor.blue()) ? "G" : "P";
             if (artifactCount < 3) {
+                artifactPresent = true;
+                String color = (hw.colorSensor.green() > hw.colorSensor.blue()) ? "G" : "P";
                 storedArtifacts[nextSlotIndex] = color;
                 nextSlotIndex = (nextSlotIndex + 1) % 3;
+                lastDetectionTime = now;
             }
-            lastDetectionTime = now;
         }
         lastDetected = detectedNow;
     }
@@ -396,6 +412,8 @@ public class ArtifactSystem {
     public void resetSlot() {
         currentSlot = 0; artifactCount = 0; nextSlotIndex = 0; motifProgress = 0;
         Arrays.fill(storedArtifacts, null);
+        insertHead = 0; insertTail = 0;
+        Arrays.fill(insertionOrder, 0);
     }
 
     public boolean isActivelyShooting() {
