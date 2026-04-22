@@ -59,18 +59,18 @@ public class RobotHardware {
         this.leftFront.setDirection(DcMotorSimple.Direction.FORWARD);
         this.leftBack.setDirection(DcMotorSimple.Direction.FORWARD);
         this.rightFront.setDirection(DcMotorSimple.Direction.REVERSE);
-        this.rightBack.setDirection(DcMotorSimple.Direction.FORWARD);
+        this.rightBack.setDirection(DcMotorSimple.Direction.REVERSE);
 
         this.intake = hwMap.get(DcMotor.class, "intake");
 
         if (reverseauton) {
-            this.intake.setDirection(DcMotorSimple.Direction.REVERSE);
-        } else {
             this.intake.setDirection(DcMotorSimple.Direction.FORWARD);
+        } else {
+            this.intake.setDirection(DcMotorSimple.Direction.REVERSE);
         }
 
         this.intake.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-            this.intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        this.intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         this.sorter = hwMap.get(DcMotorEx.class, "sorter");
         this.leftShooter = hwMap.get(DcMotorEx.class, "leftShooter");
