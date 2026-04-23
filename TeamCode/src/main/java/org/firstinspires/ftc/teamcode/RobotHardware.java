@@ -22,7 +22,7 @@ public class RobotHardware {
     public ColorRangeSensor colorSensor, colorSensor2;
     public DistanceSensor distanceSensor;
     public static double transferIdle = 0.35;
-    public static double transferPush = 0.57; //0.25
+    public static double transferPush = 0.65; //0.25
     public static double DEG_PER_SLOT = 120;
     public int sorterTarget = 0;
 
