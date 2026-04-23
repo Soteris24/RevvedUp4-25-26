@@ -13,6 +13,7 @@ import org.firstinspires.ftc.teamcode.utils.Convertor;
 public class Sorter {
 
     public RobotHardware hw;
+    private final Intake intake;
     public PIDController sorterPID;
     //RobotHardware hw;
     private final PanelsTelemetry panelsTelemetry = PanelsTelemetry.INSTANCE;
@@ -52,7 +53,12 @@ public class Sorter {
     private double transferStartTime = 0;
 
     public Sorter(RobotHardware hw, boolean telemetryOn) {
+        this(hw, null, telemetryOn);
+    }
+
+    public Sorter(RobotHardware hw, Intake intake, boolean telemetryOn) {
         this.hw = hw;
+        this.intake = intake;
         this.telemetryOn = telemetryOn;
 
         hw.sorter.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -134,6 +140,9 @@ public class Sorter {
                         Math.abs(error) > targetTolerance) {
                     stuckDetectionState = 1;
                     stuckStateStartTime = now;
+                    if (intake != null) {
+                        intake.triggerSorterRecoveryReverse();
+                    }
                 }
                 break;
 

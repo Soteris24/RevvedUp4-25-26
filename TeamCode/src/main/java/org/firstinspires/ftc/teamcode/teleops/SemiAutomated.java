@@ -32,7 +32,7 @@ public class SemiAutomated extends LinearOpMode {
         drive = new Drivetrain(hw, follower, true);
         intake = new Intake(hw, false);
         sh = new Shooter2(hw, false);
-        sorter = new Sorter(hw, false);
+        sorter = new Sorter(hw, intake, false);
 
         waitForStart();
 

@@ -74,7 +74,7 @@ public class DriverOpold extends LinearOpMode {
         follower   = Constants.createFollower(hardwareMap);
         drivetrain = new Drivetrain(hw, follower, false);
         intake     = new Intake(hw, false);
-        sorter     = new Sorter(hw, false);
+        sorter     = new Sorter(hw, intake, false);
         shooter    = new Shooter2(hw, false);
         artifactSystem = new ArtifactSystem(hw, telemetry, sorter, shooter, intake, false);
         calc       = new ShooterCalculator(distanceTable, rpmTable);
