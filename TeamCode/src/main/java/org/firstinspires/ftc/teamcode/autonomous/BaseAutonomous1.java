@@ -2,7 +2,6 @@ package org.firstinspires.ftc.teamcode.autonomous;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.RobotHardware;
 import org.firstinspires.ftc.teamcode.subsystems.ArtifactSystem;
@@ -41,21 +40,8 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
     private Pose pos2;
     private Pose pos2Forward;
 
-    // One-shot command flags — cleared each loop
-    private boolean dpadUp, dpadDown, dpadLeft, dpadRight;
-    private boolean leftTrigger, rightTrigger;
-    private boolean leftBumper, rightBumper;
-    private boolean intakeToggle, servoTransfer, intakeReverse;
-    private boolean buttonB;
-
-    // Last-state for rising-edge detection
-    private boolean lastButtonB, lastDpadUp, lastDpadDown, lastDpadLeft, lastDpadRight;
-    private boolean lastLeftBumper, lastRightBumper;
-    private boolean lastIntakeToggle, lastServoTransfer, lastIntakeReverse;
-
     private boolean isMoving = false;
     private PathChain currentPath = null;
-    private boolean isfarshoot = false;
 
     private int currentCycle = 0;
 
@@ -103,24 +89,7 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
             sorter.update();
             shooter.setPIDFCoefficients();
 
-            // Build rising edges
-            boolean sendButtonB       = buttonB       && !lastButtonB;
-            boolean sendDpadUp        = dpadUp        && !lastDpadUp;
-            boolean sendDpadDown      = dpadDown      && !lastDpadDown;
-            boolean sendDpadLeft      = dpadLeft      && !lastDpadLeft;
-            boolean sendDpadRight     = dpadRight     && !lastDpadRight;
-            boolean sendLeftBumper    = leftBumper    && !lastLeftBumper;
-            boolean sendRightBumper   = rightBumper   && !lastRightBumper;
-            boolean sendIntakeToggle  = intakeToggle  && !lastIntakeToggle;
-            boolean sendServoTransfer = servoTransfer && !lastServoTransfer;
-            boolean sendIntakeReverse = intakeReverse && !lastIntakeReverse;
-
-            artifactSystem.update(
-                    sendDpadUp, sendDpadDown, sendDpadLeft, sendDpadRight,
-                    leftTrigger, rightTrigger,
-                    sendLeftBumper, sendRightBumper,
-                    sendIntakeToggle, sendServoTransfer, sendIntakeReverse,
-                    sendButtonB, currentTime);
+            artifactSystem.update(currentTime, false, false, false);
             // Detect new artifact collected
             if (artifactSystem.artifactCount > lastArtifactCount) {
                 intakeSlowActive = true;
@@ -128,32 +97,6 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
             }
 
             lastArtifactCount = artifactSystem.artifactCount;
-//            if (intakeSlowActive) {
-//                intake.forwardPower = 0.8 * (13 / hw.getBatteryVoltage());
-//
-//                if (intakeSlowTimer.seconds() > 0.5) {
-//                    intakeSlowActive = false;
-//                    intake.forwardPower = 0.8 * (13 / hw.getBatteryVoltage());
-//                }
-//            }
-
-            // Save for next loop
-            lastButtonB       = buttonB;
-            lastDpadUp        = dpadUp;
-            lastDpadDown      = dpadDown;
-            lastDpadLeft      = dpadLeft;
-            lastDpadRight     = dpadRight;
-            lastLeftBumper    = leftBumper;
-            lastRightBumper   = rightBumper;
-            lastIntakeToggle  = intakeToggle;
-            lastServoTransfer = servoTransfer;
-            lastIntakeReverse = intakeReverse;
-
-            // Clear one-shot flags
-            dpadUp = dpadDown = dpadLeft = dpadRight = false;
-            leftBumper = rightBumper = false;
-            intakeToggle = servoTransfer = intakeReverse = buttonB = false;
-
             switch (currentState) {
                 case GO_TO_SHOOTING_POS: runGoToShootingPos(); break;
                 case GO_TO_COLLECTION:   runGoToCollection();  break;
@@ -181,13 +124,7 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
         shooter       = new Shooter2(hw, false);
         artifactSystem = new ArtifactSystem(hw, telemetry, sorter, shooter, intake, false);
 
-        artifactSystem.storedArtifacts[0] = "G";
-        artifactSystem.storedArtifacts[1] = "P";
-        artifactSystem.storedArtifacts[2] = "P";
-        artifactSystem.artifactCount  = 3;
-        artifactSystem.nextSlotIndex  = 0;
-        artifactSystem.currentSlot    = 0;
-        artifactSystem.offSetApplied  = false;
+        artifactSystem.seedArtifacts("G", "P", "P");
     }
 
     // ===================== PEDRO PATHING =====================
@@ -244,19 +181,17 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
         if (!stateStarted) {
             stateStarted = true;
             follower.setMaxPower(0.8);
-            artifactSystem.artifactCount = 3;
+            artifactSystem.seedArtifacts("G", "P", "P");
             hw.reverseauton = false;
             intake.stop();
             goToPose(shootingPose, "linear");
-            dpadUp = true; // enter SHOOT state
+            artifactSystem.switchToShooting(ArtifactSystem.LONG_RPM, false);
         }
 
         boolean arrived = hasReachedTarget();
 
         if (arrived) {
-            //artifactSystem.shootphase1 = 0.25;
-            //artifactSystem.shootphase2 = 0.3;
-            buttonB = true; // auto-fire — ArtifactSystem ignores repeated calls while already shooting
+            artifactSystem.triggerAutoFire();
         }
 
         if (arrived && !artifactSystem.isActivelyShooting() && artifactSystem.artifactCount == 0) {
@@ -274,7 +209,7 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
     private void runGoToCollection() {
         if (!stateStarted) {
             stateStarted = true;
-            dpadRight = true; // exit SHOOT → INTAKE
+            artifactSystem.switchToIntake();
             if      (currentCycle == 1) goToPose(pos1, "linear");
             else if (currentCycle == 2) goToPose(pos2, "linear");
         }
@@ -282,7 +217,7 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
         if (hasReachedTarget()) {
             intake.forwardPower = 1.0;
             follower.setMaxPower(1);
-            intakeToggle = true;
+            artifactSystem.toggleIntake();
             transitionToState(AutoState.COLLECT_BALLS);
         }
 
@@ -310,13 +245,9 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
     private void runReturnToShoot() {
         if (!stateStarted) {
             stateStarted = true;
-            //intakeToggle = true; // turn intake off
-            //intake.stop();f
-            //hw.reverseauton = true;
-            //intakeReverse = true;
             follower.setMaxPower(0.8);
             goToPose(shootingPose, "linear");
-            dpadUp = true; // re-enter SHOOT state
+            artifactSystem.switchToShooting(ArtifactSystem.LONG_RPM, false);
         }
 
         if (hasReachedTarget()) {
@@ -332,7 +263,7 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
     private void runReturnHome() {
         if (!stateStarted) {
             stateStarted = true;
-            dpadRight = true;
+            artifactSystem.switchToIntake();
             follower.setMaxPower(1.0);
             goToPose(pos1, "linear");
         }

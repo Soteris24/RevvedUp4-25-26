@@ -52,6 +52,8 @@ public class DriverOpold extends LinearOpMode {
     private boolean reversing        = false;
     private double  reverseTime      = 0;
     private int     transferState    = 0;
+    private boolean lastY, lastX, lastB, lastLB, lastRB, lastLT, lastRT;
+    private boolean lastDpadUp, lastDpadDown, lastDpadLeft, lastDpadRight;
 
     // ── Mode switching ────────────────────────────────────────────────────────
     private enum Mode { DRIVER, MANUAL }
@@ -161,26 +163,56 @@ public class DriverOpold extends LinearOpMode {
         double dy = 0 - currentPose.getY();
         artifactSystem.currentDistance = Math.hypot(dx, dy);
 
-        artifactSystem.update(
-                gamepad2.dpad_up,
-                gamepad2.dpad_down,
-                false,
-                gamepad2.a,
-                gamepad2.left_trigger  > 0.5,
-                gamepad2.right_trigger > 0.5,
-                gamepad2.left_bumper,
-                gamepad2.right_bumper,
-                gamepad2.y,
-                gamepad2.x,
-                gamepad2.x,
-                gamepad2.b,
-                currentTime
-        );
+        boolean upEdge = gamepad2.dpad_up && !lastDpadUp;
+        boolean downEdge = gamepad2.dpad_down && !lastDpadDown;
+        boolean leftEdge = gamepad2.dpad_left && !lastDpadLeft;
+        boolean rightEdge = gamepad2.dpad_right && !lastDpadRight;
+        boolean yEdge = gamepad2.y && !lastY;
+        boolean xEdge = gamepad2.x && !lastX;
+        boolean bEdge = gamepad2.b && !lastB;
+        boolean lbEdge = gamepad2.left_bumper && !lastLB;
+        boolean rbEdge = gamepad2.right_bumper && !lastRB;
+        boolean ltEdge = gamepad2.left_trigger > 0.5 && !lastLT;
+        boolean rtEdge = gamepad2.right_trigger > 0.5 && !lastRT;
+
+        if (rightEdge) artifactSystem.switchToIntake();
+        if (leftEdge) artifactSystem.switchToShooting(ArtifactSystem.SHORT_RPM, true);
+        if (upEdge) artifactSystem.switchToShooting(ArtifactSystem.LONG_RPM, false);
+        if (downEdge) artifactSystem.switchToShooting(ArtifactSystem.SHORT_RPM, false);
+
+        if (yEdge) artifactSystem.toggleIntake();
+
+        if (artifactSystem.robotState == ArtifactSystem.RobotState.INTAKE) {
+            artifactSystem.setIntakeReverse(gamepad2.a, currentTime);
+            if (lbEdge) artifactSystem.manualDetect("G");
+            if (rbEdge) artifactSystem.manualDetect("P");
+            if (ltEdge) artifactSystem.inspectSlot("G");
+            if (rtEdge) artifactSystem.inspectSlot("P");
+        } else if (artifactSystem.robotState == ArtifactSystem.RobotState.SHOOTING) {
+            if (bEdge) artifactSystem.triggerAutoFire();
+            if (xEdge) artifactSystem.triggerManualShot(currentTime);
+            if (lbEdge) artifactSystem.triggerColorShot("G");
+            if (rbEdge) artifactSystem.triggerColorShot("P");
+        }
+
+        artifactSystem.update(currentTime, ltEdge, rtEdge, false);
 
         follower.setMaxPower(1);
         sorter.update();
         follower.update();
         drivetrain.telemetryOn = false;
+
+        lastY = gamepad2.y;
+        lastX = gamepad2.x;
+        lastB = gamepad2.b;
+        lastLB = gamepad2.left_bumper;
+        lastRB = gamepad2.right_bumper;
+        lastLT = gamepad2.left_trigger > 0.5;
+        lastRT = gamepad2.right_trigger > 0.5;
+        lastDpadUp = gamepad2.dpad_up;
+        lastDpadDown = gamepad2.dpad_down;
+        lastDpadLeft = gamepad2.dpad_left;
+        lastDpadRight = gamepad2.dpad_right;
     }
 
     // ══════════════════════════════════════════════════════════════════════════
