@@ -44,6 +44,7 @@ public abstract class BaseAutonomous extends LinearOpMode {
     private PathChain currentPath = null;
 
     private int currentCycle = 0;
+    private boolean autoFireTriggered = false;
 
     // stateStarted prevents re-entering the init block after arrival
     private boolean stateStarted = false;
@@ -183,6 +184,8 @@ public abstract class BaseAutonomous extends LinearOpMode {
             follower.setMaxPower(0.8);
             hw.reverseauton = false;
             intake.stop();
+            drivetrain.resetAimController();
+            autoFireTriggered = false;
             goToPose(shootingPose, "linear");
             artifactSystem.switchToShooting(ArtifactSystem.SHORT_RPM, false);
         }
@@ -190,16 +193,26 @@ public abstract class BaseAutonomous extends LinearOpMode {
         boolean arrived = hasReachedTarget();
 
         if (arrived) {
-            artifactSystem.triggerAutoFire();
+            if (drivetrain.isAimedAtGoal()) {
+                drivetrain.stop();
+                if (!autoFireTriggered) {
+                    artifactSystem.triggerAutoFire();
+                    autoFireTriggered = true;
+                }
+            } else {
+                drivetrain.drive(0, 0, drivetrain.faceGoal());
+            }
         }
 
         if (arrived && !artifactSystem.isActivelyShooting() && artifactSystem.artifactCount == 0) {
+            drivetrain.stop();
             if      (currentCycle == 0) { currentCycle = 1; transitionToState(AutoState.GO_TO_COLLECTION); }
             else if (currentCycle == 1) { currentCycle = 2; transitionToState(AutoState.GO_TO_COLLECTION); }
             else                        { transitionToState(AutoState.RETURN_HOME); }
         }
 
         if (stateTimer.seconds() > 20.0) {
+            drivetrain.stop();
             isMoving = false;
             transitionToState(currentCycle < 2 ? AutoState.GO_TO_COLLECTION : AutoState.RETURN_HOME);
         }
