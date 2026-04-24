@@ -41,7 +41,7 @@ public class ArtifactSystem {
     public double rpm = SHORT_RPM;
     public static final double SHORT_RPM = 2030;
     public static final double LONG_RPM = 2450;
-    public double currentDistance = 48;
+    public double currentDistance = 36;
 
     private static final double[] DISTANCE_TABLE = {24, 48, 72, 96};
     private static final double[] RPM_TABLE = {2000, 2100, 2300, 2500};

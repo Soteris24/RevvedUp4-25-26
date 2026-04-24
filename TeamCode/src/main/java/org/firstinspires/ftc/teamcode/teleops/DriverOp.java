@@ -5,7 +5,6 @@ import com.bylazar.telemetry.PanelsTelemetry;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
 import com.qualcomm.hardware.lynx.LynxModule;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -16,6 +15,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.subsystems.ArtifactSystem;
 import org.firstinspires.ftc.teamcode.subsystems.Drivetrain;
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
+import org.firstinspires.ftc.teamcode.subsystems.LimelightPoseCorrector;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter2;
 import org.firstinspires.ftc.teamcode.subsystems.Sorter;
 
@@ -32,6 +32,7 @@ public class DriverOp extends LinearOpMode {
     Intake            intake;
     ArtifactSystem    artifactSystem;
     ShooterCalculator calc;
+    LimelightPoseCorrector limelightPoseCorrector;
 
     double[] distanceTable = {24, 48, 72, 144};
     double[] rpmTable      = {1650, 1850, 2050, 2650};
@@ -65,6 +66,7 @@ public class DriverOp extends LinearOpMode {
         shooter        = new Shooter2(hw, false);
         artifactSystem = new ArtifactSystem(hw, telemetry, sorter, shooter, intake, true);
         calc           = new ShooterCalculator(distanceTable, rpmTable);
+        limelightPoseCorrector = new LimelightPoseCorrector(hardwareMap, follower, telemetry);
 
         allHubs = hardwareMap.getAll(LynxModule.class);
         for (LynxModule hub : allHubs) {
@@ -72,6 +74,7 @@ public class DriverOp extends LinearOpMode {
         }
 
         waitForStart();
+        limelightPoseCorrector.start();
         loopTimer.reset();
 
         while (opModeIsActive()) {
@@ -85,6 +88,10 @@ public class DriverOp extends LinearOpMode {
             telemetry.addData("Loop ms", loopTimer.milliseconds());
             loopTimer.reset();
 
+            follower.setMaxPower(1);
+            follower.update();
+            limelightPoseCorrector.update();
+
             // --- Drivetrain (gamepad1) ---
             double y  = -gamepad1.left_stick_y;
             double x  =  gamepad1.left_stick_x;
@@ -93,10 +100,10 @@ public class DriverOp extends LinearOpMode {
             double rotInput = rx;
 
             if (gamepad1.a) {
-                rotInput = drivetrain.facePoint(25+15, 0); // returns a rotation power
+                rotInput = drivetrain.faceGoal();
             }
-            if (gamepad1.b) {
-                rotInput = drivetrain.facePoint(0, 0); // returns a rotation power
+            if (!gamepad1.a) {
+                drivetrain.resetAimController();
             }
 
             drivetrain.drive(y, x, rotInput);
@@ -166,13 +173,10 @@ public class DriverOp extends LinearOpMode {
             }
 
             artifactSystem.update(currentTime, ltEdge, rtEdge, false);
-            if (gamepad1.a) {
-                drivetrain.drive(y, x, rotInput);
-            }
-            follower.setMaxPower(1);
+
             sorter.update();
-            follower.update();
             drivetrain.telemetryOn = false;
+            limelightPoseCorrector.addTelemetry();
 
             lastY = gamepad2.y;
             lastX = gamepad2.x;
@@ -190,6 +194,7 @@ public class DriverOp extends LinearOpMode {
         }
 
         drivetrain.stop();
+        limelightPoseCorrector.stop();
         sorter.resetPID();
         artifactSystem.resetSlot();
         intake.stop();
