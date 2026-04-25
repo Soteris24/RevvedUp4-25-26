@@ -18,6 +18,7 @@ import org.firstinspires.ftc.teamcode.subsystems.Drivetrain;
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter2;
 import org.firstinspires.ftc.teamcode.subsystems.Sorter;
+import org.firstinspires.ftc.teamcode.utils.LatchedEdgeButton;
 
 import java.util.List;
 @Configurable
@@ -40,17 +41,25 @@ public class DriverOp extends LinearOpMode {
     ElapsedTime loopTimer = new ElapsedTime();
     List<LynxModule> allHubs;
 
-    boolean lastY;
-    boolean lastX;
-    boolean lastB;
-    boolean lastLB;
-    boolean lastRB;
-    boolean lastLT;
-    boolean lastRT;
-    boolean lastDpadUp;
-    boolean lastDpadDown;
-    boolean lastDpadLeft;
-    boolean lastDpadRight;
+    public static double edgeLatchSeconds = 0.12;
+
+    LatchedEdgeButton yButton = new LatchedEdgeButton(edgeLatchSeconds);
+    LatchedEdgeButton xButton = new LatchedEdgeButton(edgeLatchSeconds);
+    LatchedEdgeButton bButton = new LatchedEdgeButton(edgeLatchSeconds);
+    LatchedEdgeButton lbButton = new LatchedEdgeButton(edgeLatchSeconds);
+    LatchedEdgeButton rbButton = new LatchedEdgeButton(edgeLatchSeconds);
+    LatchedEdgeButton ltButton = new LatchedEdgeButton(edgeLatchSeconds);
+    LatchedEdgeButton rtButton = new LatchedEdgeButton(edgeLatchSeconds);
+    LatchedEdgeButton dpadUpButton = new LatchedEdgeButton(edgeLatchSeconds);
+    LatchedEdgeButton dpadDownButton = new LatchedEdgeButton(edgeLatchSeconds);
+    LatchedEdgeButton dpadLeftButton = new LatchedEdgeButton(edgeLatchSeconds);
+    LatchedEdgeButton dpadRightButton = new LatchedEdgeButton(edgeLatchSeconds);
+
+    String lastEdgeSeen = "none";
+    String lastEdgeResult = "none";
+    int seenEdgeCount = 0;
+    int acceptedEdgeCount = 0;
+    int rejectedEdgeCount = 0;
 
     @Override
     public void runOpMode() {
@@ -59,16 +68,16 @@ public class DriverOp extends LinearOpMode {
 
         follower = Constants.createFollower(hardwareMap);
 
-        drivetrain = new Drivetrain(hw, follower, true);
+        drivetrain = new Drivetrain(hw, follower, false);
         intake         = new Intake(hw, false);
         sorter         = new Sorter(hw, intake, false);
         shooter        = new Shooter2(hw, false);
-        artifactSystem = new ArtifactSystem(hw, telemetry, sorter, shooter, intake, true);
+        artifactSystem = new ArtifactSystem(hw, telemetry, sorter, shooter, intake, false);
         calc           = new ShooterCalculator(distanceTable, rpmTable);
 
         allHubs = hardwareMap.getAll(LynxModule.class);
         for (LynxModule hub : allHubs) {
-            hub.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
+            hub.setBulkCachingMode(LynxModule.BulkCachingMode.AUTO);
         }
 
         waitForStart();
@@ -107,61 +116,63 @@ public class DriverOp extends LinearOpMode {
             double dy = 0 - currentPose.getY();
             artifactSystem.currentDistance = Math.hypot(dx, dy);
 
-            boolean upEdge = gamepad2.dpad_up && !lastDpadUp;
-            boolean downEdge = gamepad2.dpad_down && !lastDpadDown;
-            boolean leftEdge = gamepad2.dpad_left && !lastDpadLeft;
-            boolean rightEdge = gamepad2.dpad_right && !lastDpadRight;
-            boolean yEdge = gamepad2.y && !lastY;
-            boolean xEdge = gamepad2.x && !lastX;
-            boolean bEdge = gamepad2.b && !lastB;
-            boolean lbEdge = gamepad2.left_bumper && !lastLB;
-            boolean rbEdge = gamepad2.right_bumper && !lastRB;
-            boolean ltEdge = gamepad2.left_trigger > 0.5 && !lastLT;
-            boolean rtEdge = gamepad2.right_trigger > 0.5 && !lastRT;
+            refreshButtonLatches(currentTime);
+
+            boolean upEdge = dpadUpButton.consume(currentTime);
+            boolean downEdge = dpadDownButton.consume(currentTime);
+            boolean leftEdge = dpadLeftButton.consume(currentTime);
+            boolean rightEdge = dpadRightButton.consume(currentTime);
+            boolean yEdge = yButton.consume(currentTime);
+            boolean xEdge = xButton.consume(currentTime);
+            boolean bEdge = bButton.consume(currentTime);
+            boolean lbEdge = lbButton.consume(currentTime);
+            boolean rbEdge = rbButton.consume(currentTime);
+            boolean ltEdge = ltButton.consume(currentTime);
+            boolean rtEdge = rtButton.consume(currentTime);
 
             if (rightEdge) {
-                artifactSystem.switchToIntake();
+                recordAction("dpad_right", artifactSystem.switchToIntake());
             }
             if (leftEdge) {
-                artifactSystem.switchToShooting(ArtifactSystem.SHORT_RPM, true);
+                recordAction("dpad_left", artifactSystem.switchToShooting(ArtifactSystem.SHORT_RPM, true));
             }
             if (upEdge) {
-                artifactSystem.switchToShooting(ArtifactSystem.LONG_RPM, false);
+                recordAction("dpad_up", artifactSystem.switchToShooting(ArtifactSystem.LONG_RPM, false));
             }
             if (downEdge) {
-                artifactSystem.switchToShooting(ArtifactSystem.SHORT_RPM, false);
+                recordAction("dpad_down", artifactSystem.switchToShooting(ArtifactSystem.SHORT_RPM, false));
             }
 
             if (yEdge) {
-                artifactSystem.toggleIntake();
+                recordAction("y", artifactSystem.toggleIntake());
             }
 
             if (artifactSystem.robotState == ArtifactSystem.RobotState.INTAKE) {
                 artifactSystem.setIntakeReverse(gamepad2.a, currentTime);
                 if (lbEdge) {
-                    artifactSystem.manualDetect("G");
+                    recordAction("left_bumper", artifactSystem.manualDetect("G"));
                 }
                 if (rbEdge) {
-                    artifactSystem.manualDetect("P");
+                    recordAction("right_bumper", artifactSystem.manualDetect("P"));
                 }
                 if (ltEdge) {
-                    artifactSystem.inspectSlot("G");
+                    recordAction("left_trigger", artifactSystem.inspectSlot("G"));
                 }
                 if (rtEdge) {
-                    artifactSystem.inspectSlot("P");
+                    recordAction("right_trigger", artifactSystem.inspectSlot("P"));
                 }
             } else if (artifactSystem.robotState == ArtifactSystem.RobotState.SHOOTING) {
                 if (bEdge) {
-                    artifactSystem.triggerAutoFire();
+                    recordAction("b", artifactSystem.triggerAutoFire());
                 }
                 if (xEdge) {
-                    artifactSystem.triggerManualShot(currentTime);
+                    recordAction("x", artifactSystem.triggerManualShot(currentTime));
                 }
                 if (lbEdge) {
-                    artifactSystem.triggerColorShot("G");
+                    recordAction("left_bumper", artifactSystem.triggerColorShot("G"));
                 }
                 if (rbEdge) {
-                    artifactSystem.triggerColorShot("P");
+                    recordAction("right_bumper", artifactSystem.triggerColorShot("P"));
                 }
             }
 
@@ -174,17 +185,25 @@ public class DriverOp extends LinearOpMode {
             follower.update();
             drivetrain.telemetryOn = false;
 
-            lastY = gamepad2.y;
-            lastX = gamepad2.x;
-            lastB = gamepad2.b;
-            lastLB = gamepad2.left_bumper;
-            lastRB = gamepad2.right_bumper;
-            lastLT = gamepad2.left_trigger > 0.5;
-            lastRT = gamepad2.right_trigger > 0.5;
-            lastDpadUp = gamepad2.dpad_up;
-            lastDpadDown = gamepad2.dpad_down;
-            lastDpadLeft = gamepad2.dpad_left;
-            lastDpadRight = gamepad2.dpad_right;
+            telemetry.addData("Input Edge Seen", lastEdgeSeen);
+            telemetry.addData("Input Edge Result", lastEdgeResult);
+            telemetry.addData("Artifact Action", artifactSystem.getLastActionMessage());
+            telemetry.addData("Edge Counts", "seen=%d accepted=%d rejected=%d", seenEdgeCount, acceptedEdgeCount, rejectedEdgeCount);
+            telemetry.addData(
+                    "Latched Pending",
+                    "Y=%s X=%s B=%s LB=%s RB=%s LT=%s RT=%s U=%s D=%s L=%s R=%s",
+                    yButton.isPending(currentTime),
+                    xButton.isPending(currentTime),
+                    bButton.isPending(currentTime),
+                    lbButton.isPending(currentTime),
+                    rbButton.isPending(currentTime),
+                    ltButton.isPending(currentTime),
+                    rtButton.isPending(currentTime),
+                    dpadUpButton.isPending(currentTime),
+                    dpadDownButton.isPending(currentTime),
+                    dpadLeftButton.isPending(currentTime),
+                    dpadRightButton.isPending(currentTime)
+            );
 
             telemetry.update();
         }
@@ -193,5 +212,30 @@ public class DriverOp extends LinearOpMode {
         sorter.resetPID();
         artifactSystem.resetSlot();
         intake.stop();
+    }
+
+    private void refreshButtonLatches(double currentTime) {
+        dpadUpButton.update(gamepad2.dpad_up, currentTime);
+        dpadDownButton.update(gamepad2.dpad_down, currentTime);
+        dpadLeftButton.update(gamepad2.dpad_left, currentTime);
+        dpadRightButton.update(gamepad2.dpad_right, currentTime);
+        yButton.update(gamepad2.y, currentTime);
+        xButton.update(gamepad2.x, currentTime);
+        bButton.update(gamepad2.b, currentTime);
+        lbButton.update(gamepad2.left_bumper, currentTime);
+        rbButton.update(gamepad2.right_bumper, currentTime);
+        ltButton.update(gamepad2.left_trigger > 0.5, currentTime);
+        rtButton.update(gamepad2.right_trigger > 0.5, currentTime);
+    }
+
+    private void recordAction(String inputName, boolean accepted) {
+        seenEdgeCount++;
+        lastEdgeSeen = inputName;
+        if (accepted) {
+            acceptedEdgeCount++;
+        } else {
+            rejectedEdgeCount++;
+        }
+        lastEdgeResult = inputName + " -> " + artifactSystem.getLastActionMessage();
     }
 }

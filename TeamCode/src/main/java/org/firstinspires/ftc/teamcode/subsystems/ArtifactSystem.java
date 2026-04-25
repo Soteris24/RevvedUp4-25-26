@@ -73,6 +73,7 @@ public class ArtifactSystem {
     private long lastSlotSwitchTime = 0;
     private static final long SLOT_DEBOUNCE_MS = 300;
     private int inspectSlotIndex = 0;
+    private String lastActionMessage = "none";
 
     public ArtifactSystem(RobotHardware hw, Telemetry telemetry, Sorter sorter, Shooter2 shooter, Intake intake, boolean telemetryOn) {
         this.hw = hw;
@@ -113,31 +114,51 @@ public class ArtifactSystem {
         }
     }
 
-    public void switchToShooting(double targetRpm, boolean dynamic) {
+    public String getLastActionMessage() {
+        return lastActionMessage;
+    }
+
+    private boolean rejectAction(String action, String reason) {
+        lastActionMessage = action + " rejected: " + reason;
+        return false;
+    }
+
+    private boolean acceptAction(String action, String detail) {
+        lastActionMessage = action + " accepted" + (detail == null || detail.isEmpty() ? "" : ": " + detail);
+        return true;
+    }
+
+    public boolean switchToShooting(double targetRpm, boolean dynamic) {
         rpm = dynamic ? getRPMForDistance(currentDistance) : targetRpm;
         dynamicShoot = dynamic;
         if (robotState != RobotState.SHOOTING) {
             enterShootingState();
+            return acceptAction("switchToShooting", dynamic ? "dynamic rpm=" + rpm : "rpm=" + rpm);
         } else {
             shooter.setTargetVelRPM(rpm);
+            return acceptAction("switchToShooting", "updated rpm=" + rpm);
         }
     }
 
-    public void switchToIntake() {
+    public boolean switchToIntake() {
         if (robotState != RobotState.INTAKE) {
             enterIntakeState();
+            return acceptAction("switchToIntake", "");
         }
+        return rejectAction("switchToIntake", "already in intake");
     }
 
-    public void switchToManual() {
+    public boolean switchToManual() {
         if (robotState != RobotState.MANUAL) {
             enterManualState();
+            return acceptAction("switchToManual", "");
         }
+        return rejectAction("switchToManual", "already in manual");
     }
 
-    public void toggleIntake() {
+    public boolean toggleIntake() {
         if (robotState != RobotState.INTAKE) {
-            return;
+            return rejectAction("toggleIntake", "robotState=" + robotState);
         }
 
         intake.intakeOn = !intake.intakeOn;
@@ -145,6 +166,7 @@ public class ArtifactSystem {
         if (intake.intakeOn) {
             artifactPresent = false;
         }
+        return acceptAction("toggleIntake", intake.intakeOn ? "on" : "off");
     }
 
     public void setIntakeReverse(boolean reverse, double currentTime) {
@@ -153,80 +175,93 @@ public class ArtifactSystem {
         }
     }
 
-    public void triggerAutoFire() {
+    public boolean triggerAutoFire() {
         if (robotState != RobotState.SHOOTING || shootSubState != ShootSubState.IDLE || artifactCount <= 0) {
-            return;
+            return rejectAction(
+                    "triggerAutoFire",
+                    "state=" + robotState + ", subState=" + shootSubState + ", artifactCount=" + artifactCount
+            );
         }
 
         autoFire = true;
         pendingShootColor = null;
         startNextAutoShot();
+        return acceptAction("triggerAutoFire", "artifactCount=" + artifactCount);
     }
 
-    public void triggerColorShot(String color) {
+    public boolean triggerColorShot(String color) {
         if (robotState != RobotState.SHOOTING || shootSubState != ShootSubState.IDLE) {
-            return;
+            return rejectAction("triggerColorShot(" + color + ")", "state=" + robotState + ", subState=" + shootSubState);
         }
 
         pendingShootColor = color;
         startShot();
+        if (shootSubState == ShootSubState.MOVE_TO_SLOT) {
+            return acceptAction("triggerColorShot(" + color + ")", "targetSlot=" + targetSlot);
+        }
+        return rejectAction("triggerColorShot(" + color + ")", "no matching artifact");
     }
 
-    public void triggerManualShot(double currentTime) {
+    public boolean triggerManualShot(double currentTime) {
         if (manualTransferActive) {
-            return;
+            return rejectAction("triggerManualShot", "manual transfer active");
         }
         if (robotState == RobotState.MANUAL && !sorter.atTarget()) {
-            return;
+            return rejectAction("triggerManualShot", "sorter not at target");
         }
 
         manualTransferActive = true;
         manualTransferStart = currentTime;
         hw.sorterTransfer.setPosition(RobotHardware.transferPush);
+        return acceptAction("triggerManualShot", "");
     }
 
-    public void manualDetect(String color) {
+    public boolean manualDetect(String color) {
         if (robotState != RobotState.INTAKE || artifactCount >= storedArtifacts.length) {
-            return;
+            return rejectAction("manualDetect(" + color + ")", "state=" + robotState + ", artifactCount=" + artifactCount);
         }
         if (System.currentTimeMillis() - lastSlotSwitchTime < SLOT_DEBOUNCE_MS) {
-            return;
+            return rejectAction("manualDetect(" + color + ")", "slot debounce active");
         }
 
         if (storeArtifact(color)) {
             artifactPresent = true;
             lastSlotSwitchTime = System.currentTimeMillis();
+            return acceptAction("manualDetect(" + color + ")", "slot stored");
         }
+        return rejectAction("manualDetect(" + color + ")", "slot unavailable");
     }
 
-    public void inspectSlot(String color) {
+    public boolean inspectSlot(String color) {
         if (robotState != RobotState.INTAKE) {
-            return;
+            return rejectAction("inspectSlot(" + color + ")", "state=" + robotState);
         }
         if (System.currentTimeMillis() - lastSlotSwitchTime < SLOT_DEBOUNCE_MS) {
-            return;
+            return rejectAction("inspectSlot(" + color + ")", "slot debounce active");
         }
 
         int slot = findNextSlotByColor(color, inspectSlotIndex);
         if (slot == -1) {
-            return;
+            return rejectAction("inspectSlot(" + color + ")", "no matching slot");
         }
 
         rotateToSlot(slot, false);
         inspectSlotIndex = (slot + 1) % storedArtifacts.length;
         lastSlotSwitchTime = System.currentTimeMillis();
+        return acceptAction("inspectSlot(" + color + ")", "slot=" + slot);
     }
 
-    public void manualRotate(int direction) {
+    public boolean manualRotate(int direction) {
         if (robotState != RobotState.MANUAL || manualTransferActive) {
-            return;
+            return rejectAction("manualRotate(" + direction + ")", "state=" + robotState + ", transferActive=" + manualTransferActive);
         }
         if (System.currentTimeMillis() - lastSlotSwitchTime < SLOT_DEBOUNCE_MS) {
-            return;
+            return rejectAction("manualRotate(" + direction + ")", "slot debounce active");
         }
 
         sorter.moveDegrees(direction * RobotHardware.DEG_PER_SLOT);
         lastSlotSwitchTime = System.currentTimeMillis();
+        return acceptAction("manualRotate(" + direction + ")", "");
     }
 
     public void seedArtifacts(String... colors) {
