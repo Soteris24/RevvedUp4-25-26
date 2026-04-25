@@ -55,12 +55,6 @@ public class DriverOp extends LinearOpMode {
     LatchedEdgeButton dpadLeftButton = new LatchedEdgeButton(edgeLatchSeconds);
     LatchedEdgeButton dpadRightButton = new LatchedEdgeButton(edgeLatchSeconds);
 
-    String lastEdgeSeen = "none";
-    String lastEdgeResult = "none";
-    int seenEdgeCount = 0;
-    int acceptedEdgeCount = 0;
-    int rejectedEdgeCount = 0;
-
     @Override
     public void runOpMode() {
         hw = new RobotHardware();
@@ -68,11 +62,11 @@ public class DriverOp extends LinearOpMode {
 
         follower = Constants.createFollower(hardwareMap);
 
-        drivetrain = new Drivetrain(hw, follower, false);
+        drivetrain = new Drivetrain(hw, follower, true);
         intake         = new Intake(hw, false);
         sorter         = new Sorter(hw, intake, false);
         shooter        = new Shooter2(hw, false);
-        artifactSystem = new ArtifactSystem(hw, telemetry, sorter, shooter, intake, false);
+        artifactSystem = new ArtifactSystem(hw, telemetry, sorter, shooter, intake, true);
         calc           = new ShooterCalculator(distanceTable, rpmTable);
 
         allHubs = hardwareMap.getAll(LynxModule.class);
@@ -131,48 +125,48 @@ public class DriverOp extends LinearOpMode {
             boolean rtEdge = rtButton.consume(currentTime);
 
             if (rightEdge) {
-                recordAction("dpad_right", artifactSystem.switchToIntake());
+                artifactSystem.switchToIntake();
             }
             if (leftEdge) {
-                recordAction("dpad_left", artifactSystem.switchToShooting(ArtifactSystem.SHORT_RPM, true));
+                artifactSystem.switchToShooting(ArtifactSystem.SHORT_RPM, true);
             }
             if (upEdge) {
-                recordAction("dpad_up", artifactSystem.switchToShooting(ArtifactSystem.LONG_RPM, false));
+                artifactSystem.switchToShooting(ArtifactSystem.LONG_RPM, false);
             }
             if (downEdge) {
-                recordAction("dpad_down", artifactSystem.switchToShooting(ArtifactSystem.SHORT_RPM, false));
+                artifactSystem.switchToShooting(ArtifactSystem.SHORT_RPM, false);
             }
 
             if (yEdge) {
-                recordAction("y", artifactSystem.toggleIntake());
+                artifactSystem.toggleIntake();
             }
 
             if (artifactSystem.robotState == ArtifactSystem.RobotState.INTAKE) {
                 artifactSystem.setIntakeReverse(gamepad2.a, currentTime);
                 if (lbEdge) {
-                    recordAction("left_bumper", artifactSystem.manualDetect("G"));
+                    artifactSystem.manualDetect("G");
                 }
                 if (rbEdge) {
-                    recordAction("right_bumper", artifactSystem.manualDetect("P"));
+                    artifactSystem.manualDetect("P");
                 }
                 if (ltEdge) {
-                    recordAction("left_trigger", artifactSystem.inspectSlot("G"));
+                    artifactSystem.inspectSlot("G");
                 }
                 if (rtEdge) {
-                    recordAction("right_trigger", artifactSystem.inspectSlot("P"));
+                    artifactSystem.inspectSlot("P");
                 }
             } else if (artifactSystem.robotState == ArtifactSystem.RobotState.SHOOTING) {
                 if (bEdge) {
-                    recordAction("b", artifactSystem.triggerAutoFire());
+                    artifactSystem.triggerAutoFire();
                 }
                 if (xEdge) {
-                    recordAction("x", artifactSystem.triggerManualShot(currentTime));
+                    artifactSystem.triggerManualShot(currentTime);
                 }
                 if (lbEdge) {
-                    recordAction("left_bumper", artifactSystem.triggerColorShot("G"));
+                    artifactSystem.triggerColorShot("G");
                 }
                 if (rbEdge) {
-                    recordAction("right_bumper", artifactSystem.triggerColorShot("P"));
+                    artifactSystem.triggerColorShot("P");
                 }
             }
 
@@ -184,26 +178,6 @@ public class DriverOp extends LinearOpMode {
             sorter.update();
             follower.update();
             drivetrain.telemetryOn = false;
-
-            telemetry.addData("Input Edge Seen", lastEdgeSeen);
-            telemetry.addData("Input Edge Result", lastEdgeResult);
-            telemetry.addData("Artifact Action", artifactSystem.getLastActionMessage());
-            telemetry.addData("Edge Counts", "seen=%d accepted=%d rejected=%d", seenEdgeCount, acceptedEdgeCount, rejectedEdgeCount);
-            telemetry.addData(
-                    "Latched Pending",
-                    "Y=%s X=%s B=%s LB=%s RB=%s LT=%s RT=%s U=%s D=%s L=%s R=%s",
-                    yButton.isPending(currentTime),
-                    xButton.isPending(currentTime),
-                    bButton.isPending(currentTime),
-                    lbButton.isPending(currentTime),
-                    rbButton.isPending(currentTime),
-                    ltButton.isPending(currentTime),
-                    rtButton.isPending(currentTime),
-                    dpadUpButton.isPending(currentTime),
-                    dpadDownButton.isPending(currentTime),
-                    dpadLeftButton.isPending(currentTime),
-                    dpadRightButton.isPending(currentTime)
-            );
 
             telemetry.update();
         }
@@ -226,16 +200,5 @@ public class DriverOp extends LinearOpMode {
         rbButton.update(gamepad2.right_bumper, currentTime);
         ltButton.update(gamepad2.left_trigger > 0.5, currentTime);
         rtButton.update(gamepad2.right_trigger > 0.5, currentTime);
-    }
-
-    private void recordAction(String inputName, boolean accepted) {
-        seenEdgeCount++;
-        lastEdgeSeen = inputName;
-        if (accepted) {
-            acceptedEdgeCount++;
-        } else {
-            rejectedEdgeCount++;
-        }
-        lastEdgeResult = inputName + " -> " + artifactSystem.getLastActionMessage();
     }
 }
