@@ -62,16 +62,16 @@ public class DriverOp extends LinearOpMode {
 
         follower = Constants.createFollower(hardwareMap);
 
-        drivetrain = new Drivetrain(hw, follower, true);
+        drivetrain = new Drivetrain(hw, follower, false);
         intake         = new Intake(hw, false);
         sorter         = new Sorter(hw, intake, false);
         shooter        = new Shooter2(hw, false);
-        artifactSystem = new ArtifactSystem(hw, telemetry, sorter, shooter, intake, true);
+        artifactSystem = new ArtifactSystem(hw, telemetry, sorter, shooter, intake, false);
         calc           = new ShooterCalculator(distanceTable, rpmTable);
 
         allHubs = hardwareMap.getAll(LynxModule.class);
         for (LynxModule hub : allHubs) {
-            hub.setBulkCachingMode(LynxModule.BulkCachingMode.AUTO);
+            hub.setBulkCachingMode(LynxModule.BulkCachingMode.OFF);
         }
 
         waitForStart();
@@ -93,10 +93,12 @@ public class DriverOp extends LinearOpMode {
             double x  =  gamepad1.left_stick_x;
             double rx =  gamepad1.right_stick_x;
 
-            double rotInput = rx;
+            double rotInput;
 
             if (gamepad1.a) {
-                rotInput = drivetrain.facePoint(25+15, 0); // returns a rotation power
+                rotInput = drivetrain.facePoint(40, 0); // returns a rotation power
+            } else {
+                rotInput = rx;
             }
 
             drivetrain.drive(y, x, rotInput);
@@ -167,7 +169,7 @@ public class DriverOp extends LinearOpMode {
                 }
             }
 
-            artifactSystem.update(currentTime, ltEdge, rtEdge, false);
+            artifactSystem.update(currentTime);
 
             follower.setMaxPower(1);
             sorter.update();

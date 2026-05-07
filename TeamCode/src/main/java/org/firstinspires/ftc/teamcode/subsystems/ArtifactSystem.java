@@ -63,7 +63,7 @@ public class ArtifactSystem {
 
     private boolean manualTransferActive = false;
     private double manualTransferStart = 0;
-    private static final double MANUAL_TRANSFER_SEC = 0.4;
+    private static final double MANUAL_TRANSFER_SEC = 0.3;
     public double shootPhase1 = 0.14;
     public double shootPhase2 = 0.15;
     boolean dynamicShoot = false;
@@ -83,7 +83,7 @@ public class ArtifactSystem {
         this.telemetryOn = telemetryOn;
     }
 
-    public void update(double currentTime, boolean ltEdge, boolean rtEdge, boolean servoEdge) {
+    public void update(double currentTime) { //, boolean ltEdge, boolean rtEdge, boolean servoEdge
         if (robotState == RobotState.INTAKE) {
             detect();
         }
@@ -96,7 +96,8 @@ public class ArtifactSystem {
                 updateShooting(currentTime);
                 break;
             case MANUAL:
-                updateManual(ltEdge, rtEdge, servoEdge, currentTime);
+                //updateManual(ltEdge, rtEdge, servoEdge, currentTime);
+                //pekse mucho
                 break;
         }
 

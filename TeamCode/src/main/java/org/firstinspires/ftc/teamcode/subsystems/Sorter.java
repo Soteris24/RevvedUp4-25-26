@@ -140,7 +140,7 @@ public class Sorter {
                         Math.abs(error) > targetTolerance) {
                     stuckDetectionState = 1;
                     stuckStateStartTime = now;
-                    if (intake != null) {
+                    if (intake != null && intake.intakeOn) {
                         intake.triggerSorterRecoveryReverse();
                     }
                 }
