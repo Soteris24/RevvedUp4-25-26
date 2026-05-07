@@ -98,9 +98,6 @@ public class DriverOp extends LinearOpMode {
             if (gamepad1.a) {
                 rotInput = drivetrain.facePoint(25+15, 0); // returns a rotation power
             }
-            if (gamepad1.b) {
-                rotInput = drivetrain.facePoint(0, 0); // returns a rotation power
-            }
 
             drivetrain.drive(y, x, rotInput);
 
@@ -171,9 +168,7 @@ public class DriverOp extends LinearOpMode {
             }
 
             artifactSystem.update(currentTime, ltEdge, rtEdge, false);
-            if (gamepad1.a) {
-                drivetrain.drive(y, x, rotInput);
-            }
+
             follower.setMaxPower(1);
             sorter.update();
             follower.update();

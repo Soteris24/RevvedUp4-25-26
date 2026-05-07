@@ -237,7 +237,6 @@ public class ArtifactSystem {
                 continue;
             }
             storeArtifact(colors[i]);
-            artifactCount++;
         }
         artifactPresent = false;
     }
@@ -254,7 +253,7 @@ public class ArtifactSystem {
 
             case WAIT:
                 if (currentTime - intakeRotateStartTime >= INTAKE_SETTLE_SEC) {
-                    if (artifactCount < 2) {
+                    if (artifactCount < storedArtifacts.length) {
                         sorter.moveDegrees(RobotHardware.DEG_PER_SLOT);
                         intakeSubState = IntakeSubState.RETURN;
                     } else {
@@ -266,14 +265,12 @@ public class ArtifactSystem {
             case RETURN:
                 if (sorter.atTarget()) {
                     intake.intakeOn = true;
-                    artifactCount++;
                     artifactPresent = false;
-                    intakeSubState = artifactCount >= 3 ? IntakeSubState.FULL : IntakeSubState.INTAKE;
+                    intakeSubState = artifactCount >= storedArtifacts.length ? IntakeSubState.FULL : IntakeSubState.INTAKE;
                 }
                 break;
 
             case FULL:
-                artifactCount = 3;
                 intake.intakeOn = false;
                 if (sorter.atTarget()) {
                     intakeSubState = IntakeSubState.IDLE;
@@ -335,7 +332,6 @@ public class ArtifactSystem {
                 if (transferInProgress && currentTime - transferStartTime > shootPhase1) {
                     hw.sorterTransfer.setPosition(RobotHardware.transferIdle);
                     removeArtifact(currentSlot);
-                    artifactCount = Math.max(0, artifactCount - 1);
                     transferInProgress = false;
                     sorterMoved = false;
                     pendingShootColor = null;
@@ -506,14 +502,21 @@ public class ArtifactSystem {
     }
 
     private boolean storeArtifact(String color) {
-        if (artifactCount >= storedArtifacts.length || storedArtifacts[nextSlotIndex] != null) {
+        if (artifactCount >= storedArtifacts.length) {
             return false;
         }
 
-        storedArtifacts[nextSlotIndex] = color;
-        insertionOrder[insertTail % insertionOrder.length] = nextSlotIndex;
+        int slot = findNextEmptySlot(nextSlotIndex);
+        if (slot == -1) {
+            syncArtifactCount();
+            return false;
+        }
+
+        storedArtifacts[slot] = color;
+        insertionOrder[insertTail % insertionOrder.length] = slot;
         insertTail++;
-        nextSlotIndex = (nextSlotIndex + 1) % storedArtifacts.length;
+        nextSlotIndex = (slot + 1) % storedArtifacts.length;
+        syncArtifactCount();
         return true;
     }
 
@@ -552,7 +555,29 @@ public class ArtifactSystem {
         if (storedArtifacts[slot] != null) {
             storedArtifacts[slot] = null;
             motifProgress = (motifProgress + 1) % motif.length;
+            nextSlotIndex = slot;
+            syncArtifactCount();
         }
+    }
+
+    private int findNextEmptySlot(int start) {
+        for (int i = 0; i < storedArtifacts.length; i++) {
+            int idx = (start + i) % storedArtifacts.length;
+            if (storedArtifacts[idx] == null) {
+                return idx;
+            }
+        }
+        return -1;
+    }
+
+    private void syncArtifactCount() {
+        int count = 0;
+        for (String artifact : storedArtifacts) {
+            if (artifact != null) {
+                count++;
+            }
+        }
+        artifactCount = count;
     }
 
     public void resetSlot() {
