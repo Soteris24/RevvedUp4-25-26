@@ -181,7 +181,6 @@ public abstract class BaseAutonomous extends LinearOpMode {
         if (!stateStarted) {
             stateStarted = true;
             follower.setMaxPower(0.8);
-            hw.reverseauton = false;
             intake.stop();
             goToPose(shootingPose, "linear");
             artifactSystem.switchToShooting(ArtifactSystem.SHORT_RPM, false);

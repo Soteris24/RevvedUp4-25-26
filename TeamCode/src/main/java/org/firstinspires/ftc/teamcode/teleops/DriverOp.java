@@ -34,8 +34,8 @@ public class DriverOp extends LinearOpMode {
     ArtifactSystem    artifactSystem;
     ShooterCalculator calc;
 
-    double[] distanceTable = {24, 48, 72, 144};
-    double[] rpmTable      = {1650, 1850, 2050, 2650};
+    double[] distanceTable = {24, 48, 72, 144}; //NOT USED
+    double[] rpmTable      = {1650, 1850, 2050, 2650}; //NOT USED
 
     PanelsTelemetry tel = PanelsTelemetry.INSTANCE;
     ElapsedTime loopTimer = new ElapsedTime();
@@ -67,7 +67,7 @@ public class DriverOp extends LinearOpMode {
         sorter         = new Sorter(hw, intake, false);
         shooter        = new Shooter2(hw, false);
         artifactSystem = new ArtifactSystem(hw, telemetry, sorter, shooter, intake, false);
-        calc           = new ShooterCalculator(distanceTable, rpmTable);
+        calc           = new ShooterCalculator(distanceTable, rpmTable); //NOT USED
 
         allHubs = hardwareMap.getAll(LynxModule.class);
         for (LynxModule hub : allHubs) {

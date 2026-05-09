@@ -29,12 +29,11 @@ public class RobotHardware {
     public HardwareMap hardwareMap;
     public ElapsedTime timer = new ElapsedTime();
     public int shotsRemaining = 0;
-    public boolean reverseauton = false;
     String[] storedArtifacts = new String[3];
 
     public int artifactCount = 0;
     public boolean artifactPresent = false;
-    public String[] motif = {"P", "P", "G"};
+    public String[] motif = {"P", "P", "G"}; //NOT USED
     public boolean motifSortingEnabled = false;
     int targetSlot;
 
@@ -63,12 +62,7 @@ public class RobotHardware {
 
         this.intake = hwMap.get(DcMotor.class, "intake");
 
-        if (reverseauton) {
-            this.intake.setDirection(DcMotorSimple.Direction.REVERSE);
-        } else {
-            this.intake.setDirection(DcMotorSimple.Direction.FORWARD);
-        }
-
+        this.intake.setDirection(DcMotorSimple.Direction.FORWARD);
         this.intake.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         this.intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
