@@ -46,10 +46,6 @@ public class ArtifactSystem {
     private static final double[] DISTANCE_TABLE = {24, 48, 72, 96};
     private static final double[] RPM_TABLE = {2000, 2100, 2300, 2500};
 
-    private final int[] insertionOrder = new int[3];
-    private int insertHead = 0;
-    private int insertTail = 0;
-
     private String pendingShootColor = null;
     private boolean transferInProgress = false;
     private double transferStartTime = 0;
@@ -59,12 +55,12 @@ public class ArtifactSystem {
     private double intakeRotateStartTime = 0;
     private double rotateStartTime = 0;
     private static final double INTAKE_SETTLE_SEC = 0.1;
-    private static final double ROTATE_GUARD_SEC = 0.15;
+    private static final double ROTATE_GUARD_SEC = 0.1;
 
     private boolean manualTransferActive = false;
     private double manualTransferStart = 0;
     private static final double MANUAL_TRANSFER_SEC = 0.3;
-    public double shootPhase1 = 0.14;
+    public double shootPhase1 = 0.15;
     public double shootPhase2 = 0.15;
     boolean dynamicShoot = false;
 
@@ -83,11 +79,7 @@ public class ArtifactSystem {
         this.telemetryOn = telemetryOn;
     }
 
-    public void update(double currentTime) { //, boolean ltEdge, boolean rtEdge, boolean servoEdge
-        if (robotState == RobotState.INTAKE) {
-            detect();
-        }
-
+    public void update(double currentTime) {
         switch (robotState) {
             case INTAKE:
                 updateIntake(currentTime);
@@ -96,8 +88,6 @@ public class ArtifactSystem {
                 updateShooting(currentTime);
                 break;
             case MANUAL:
-                //updateManual(ltEdge, rtEdge, servoEdge, currentTime);
-                //pekse mucho
                 break;
         }
 
@@ -193,10 +183,16 @@ public class ArtifactSystem {
         if (System.currentTimeMillis() - lastSlotSwitchTime < SLOT_DEBOUNCE_MS) {
             return;
         }
+        if (intakeSubState != IntakeSubState.INTAKE && intakeSubState != IntakeSubState.IDLE) {
+            return;
+        }
 
         if (storeArtifact(color)) {
             artifactPresent = true;
             lastSlotSwitchTime = System.currentTimeMillis();
+            if (intakeSubState == IntakeSubState.IDLE) {
+                intakeSubState = IntakeSubState.INTAKE;
+            }
         }
     }
 
@@ -245,6 +241,7 @@ public class ArtifactSystem {
     private void updateIntake(double currentTime) {
         switch (intakeSubState) {
             case INTAKE:
+                detect();
                 if (artifactPresent) {
                     intakeRotateStartTime = currentTime;
                     intake.slow();
@@ -447,27 +444,15 @@ public class ArtifactSystem {
     }
 
     private void startNextAutoShot() {
-        while (insertHead < insertTail) {
-            int slot = insertionOrder[insertHead % insertionOrder.length];
-            insertHead++;
-            if (slot >= 0 && slot < storedArtifacts.length && storedArtifacts[slot] != null) {
-                targetSlot = slot;
-                pendingShootColor = storedArtifacts[slot];
-                shootSubState = ShootSubState.MOVE_TO_SLOT;
-                return;
-            }
-        }
-
-        int fallbackSlot = findAnySlot();
-        if (fallbackSlot != -1) {
-            targetSlot = fallbackSlot;
-            pendingShootColor = storedArtifacts[fallbackSlot];
-            shootSubState = ShootSubState.MOVE_TO_SLOT;
+        int slot = findAnySlot();
+        if (slot == -1) {
+            autoFire = false;
+            enterIntakeState();
             return;
         }
-
-        autoFire = false;
-        enterIntakeState();
+        targetSlot = slot;
+        pendingShootColor = storedArtifacts[slot];
+        shootSubState = ShootSubState.MOVE_TO_SLOT;
     }
 
     private void startShot() {
@@ -490,11 +475,11 @@ public class ArtifactSystem {
         long now = System.currentTimeMillis();
 
         if (!artifactPresent && detectedNow && !lastDetected && now - lastDetectionTime > 300) {
+            lastDetectionTime = now;
             if (artifactCount < storedArtifacts.length) {
                 String color = hw.colorSensor.green() > hw.colorSensor.blue() ? "G" : "P";
                 if (storeArtifact(color)) {
                     artifactPresent = true;
-                    lastDetectionTime = now;
                 }
             }
         }
@@ -514,8 +499,6 @@ public class ArtifactSystem {
         }
 
         storedArtifacts[slot] = color;
-        insertionOrder[insertTail % insertionOrder.length] = slot;
-        insertTail++;
         nextSlotIndex = (slot + 1) % storedArtifacts.length;
         syncArtifactCount();
         return true;
@@ -588,10 +571,7 @@ public class ArtifactSystem {
         motifProgress = 0;
         offSetApplied = false;
         artifactPresent = false;
-        insertHead = 0;
-        insertTail = 0;
         Arrays.fill(storedArtifacts, null);
-        Arrays.fill(insertionOrder, 0);
     }
 
     public boolean isActivelyShooting() {

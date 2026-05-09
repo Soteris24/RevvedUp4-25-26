@@ -89,7 +89,7 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
             sorter.update();
             shooter.setPIDFCoefficients();
 
-            artifactSystem.update(currentTime, false, false, false);
+            artifactSystem.update(currentTime);
             // Detect new artifact collected
             if (artifactSystem.artifactCount > lastArtifactCount) {
                 intakeSlowActive = true;

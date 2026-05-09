@@ -195,7 +195,7 @@ public class DriverOpold extends LinearOpMode {
             if (rbEdge) artifactSystem.triggerColorShot("P");
         }
 
-        artifactSystem.update(currentTime, ltEdge, rtEdge, false);
+        artifactSystem.update(currentTime);
 
         follower.setMaxPower(1);
         sorter.update();

@@ -27,8 +27,8 @@ public class Sorter {
     // ===== CONTROL PARAMS =====
     public static double minPower = 0.1;   // overcome static friction
     public static int slowZone = 700;        // ticks
-    public static int targetTolerance = 200;  // ticks
-    public static long settleTime = 50;      // ms
+    public static int targetTolerance = 250;  // ticks
+    public static long settleTime = 20;      // ms
 
     // ===== STUCK DETECTION PARAMS =====
     public static double stuckErrorThreshold = 150;  // error must be within this to not count as "stuck"

@@ -89,7 +89,7 @@ public abstract class BaseAutonomous extends LinearOpMode {
             sorter.update();
             shooter.setPIDFCoefficients();
 
-            artifactSystem.update(currentTime, false, false, false);
+            artifactSystem.update(currentTime);
 
             if (runtime.seconds() > 28.5
                     && currentState != AutoState.RETURN_HOME
