@@ -55,13 +55,13 @@ public class ArtifactSystem {
     private double intakeRotateStartTime = 0;
     private double rotateStartTime = 0;
     private static final double INTAKE_SETTLE_SEC = 0.1;
-    private static final double ROTATE_GUARD_SEC = 0.1;
+    private static final double ROTATE_GUARD_SEC = 0;
 
     private boolean manualTransferActive = false;
     private double manualTransferStart = 0;
     private static final double MANUAL_TRANSFER_SEC = 0.3;
-    public double shootPhase1 = 0.15;
-    public double shootPhase2 = 0.15;
+    public double shootPhase1 = 0.17;
+    public double shootPhase2 = 0.29;
     boolean dynamicShoot = false;
 
     private boolean lastDetected = false;
@@ -244,7 +244,6 @@ public class ArtifactSystem {
                 detect();
                 if (artifactPresent) {
                     intakeRotateStartTime = currentTime;
-                    intake.slow();
                     intakeSubState = IntakeSubState.WAIT;
                 }
                 break;
@@ -280,7 +279,7 @@ public class ArtifactSystem {
                 break;
         }
 
-        shooter.setTargetVelRPM(intake.intakeOn ? 1000 : 0);
+        shooter.setTargetVelRPM(intake.intakeOn ? 0 : 0);
     }
 
     private void updateShooting(double currentTime) {
@@ -333,7 +332,7 @@ public class ArtifactSystem {
                     transferInProgress = false;
                     sorterMoved = false;
                     pendingShootColor = null;
-                    transferStartTime = currentTime;
+                    //transferStartTime = currentTime;
                 }
                 if (!transferInProgress && currentTime - transferStartTime > shootPhase2) {
                     if (artifactCount <= 0) {

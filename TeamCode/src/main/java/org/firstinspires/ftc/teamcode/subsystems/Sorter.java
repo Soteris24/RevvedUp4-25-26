@@ -27,8 +27,8 @@ public class Sorter {
     // ===== CONTROL PARAMS =====
     public static double minPower = 0.1;   // overcome static friction
     public static int slowZone = 700;        // ticks
-    public static int targetTolerance = 250;  // ticks
-    public static long settleTime = 20;      // ms
+    public static int targetTolerance = 200;  // ticks
+    public static long settleTime = 0;      // ms
 
     // ===== STUCK DETECTION PARAMS =====
     public static double stuckErrorThreshold = 150;  // error must be within this to not count as "stuck"
@@ -192,7 +192,7 @@ public class Sorter {
     public boolean atTarget() {
         double error = targetTicks - hw.sorter.getCurrentPosition();
 
-        if (Math.abs(error) < targetTolerance) {
+        if (Math.abs(error) < 180) {
             if (stableSince == 0) {
                 stableSince = System.currentTimeMillis();
             }

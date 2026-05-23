@@ -106,7 +106,7 @@ public abstract class BaseAutonomous extends LinearOpMode {
                 case COMPLETE:           runComplete(); return;
             }
 
-            updateTelemetry();
+            //updateTelemetry();
             //sleep(10);
         }
     }
@@ -256,7 +256,7 @@ public abstract class BaseAutonomous extends LinearOpMode {
             artifactSystem.switchToShooting(ArtifactSystem.SHORT_RPM, false);
         }
 
-        if (hasReachedTarget() && stateTimer.seconds() > 2.0) {
+        if (hasReachedTarget() && stateTimer.seconds() > 0) {
             transitionToState(AutoState.GO_TO_SHOOTING_POS);
         }
 

@@ -17,8 +17,8 @@ public class Intake {
     public double forwardPower = 1;
     public double reversePower = -1;
     public double reverseDuration = 0.5;
-    public static double sorterRecoveryReversePower = -1;
-    public static long sorterRecoveryReverseMs = 50;
+    public static double sorterRecoveryReversePower = -0.5;
+    public static long sorterRecoveryReverseMs = 1000;
 
     private long sorterRecoveryReverseUntilMs = 0;
 
