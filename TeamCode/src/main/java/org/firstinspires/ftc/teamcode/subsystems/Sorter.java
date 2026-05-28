@@ -20,15 +20,15 @@ public class Sorter {
     public boolean telemetryOn;
 
     // ===== PID TUNING =====
-    public static double kP = 0.0005; //0.0003
+    public static double kP = 0.0005; //0.0003 0.0005
     public static double kI = 0.0;
-    public static double kD = 0.000018; //0.000004
+    public static double kD = 0.000019; //0.000004 0.000018
 
     // ===== CONTROL PARAMS =====
     public static double minPower = 0.1;   // overcome static friction
     public static int slowZone = 700;        // ticks
     public static int targetTolerance = 200;  // ticks
-    public static long settleTime = 0;      // ms
+    public static long settleTime = 10;      // ms
 
     // ===== STUCK DETECTION PARAMS =====
     public static double stuckErrorThreshold = 150;  // error must be within this to not count as "stuck"
@@ -63,7 +63,9 @@ public class Sorter {
 
         hw.sorter.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-        sorterPID = new PIDController(new PIDCoefficients(kP , kI, kD)); //* (12.8 / hw.getBatteryVoltage())
+        double voltage = hw.getBatteryVoltage();
+        double dynamicKD = 0.000019 - (voltage - 12.0) * 0.0000005;
+        sorterPID = new PIDController(new PIDCoefficients(kP, kI, dynamicKD));
 
 
         targetTicks = hw.sorter.getCurrentPosition();
@@ -77,7 +79,9 @@ public class Sorter {
         double dt = Math.max((now - lastTime) / 1000.0, 0.001);
         lastTime = now;
 
-        sorterPID.setCoefficients(new PIDCoefficients(kP , kI, kD));
+        double voltage = hw.getBatteryVoltage();
+        double dynamicKD = 0.000019 - (voltage - 12.0) * 0.0000005;
+        sorterPID.setCoefficients(new PIDCoefficients(kP, kI, dynamicKD));
 
         int position = hw.sorter.getCurrentPosition();
         double error = targetTicks - position;

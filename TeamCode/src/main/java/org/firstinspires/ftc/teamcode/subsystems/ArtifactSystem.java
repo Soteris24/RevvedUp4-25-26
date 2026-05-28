@@ -335,7 +335,7 @@ public class ArtifactSystem {
                     //transferStartTime = currentTime;
                 }
                 if (!transferInProgress && currentTime - transferStartTime > shootPhase2) {
-                    if (artifactCount <= 0) {
+                    if (artifactCount <= 0 && currentTime - transferStartTime > shootPhase2+0.10) {
                         autoFire = false;
                         enterIntakeState();
                     } else if (autoFire) {
