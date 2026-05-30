@@ -11,7 +11,7 @@ import org.firstinspires.ftc.teamcode.utils.Convertor;
 public class Shooter2 {
 RobotHardware hw;
 
-public static double kP = 0.02;
+public static double kP = 0.02; //0.02
 public static double kI = 0;
 public static double kD = 0.02;
 public static double kV = 10.1;
@@ -22,7 +22,7 @@ public double targetVelTPS;
 public PanelsTelemetry panelsTelemetry = PanelsTelemetry.INSTANCE;
 public  boolean telemetryOn;
 public double atTargetStartTime = -1;
-public double atTargetDelayTime = 600;
+public double atTargetDelayTime = 300;
 
     public Shooter2 (RobotHardware hw, boolean telemetryOn) {
         this.hw = hw;

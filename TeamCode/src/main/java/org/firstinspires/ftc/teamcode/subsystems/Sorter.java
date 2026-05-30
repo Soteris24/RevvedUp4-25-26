@@ -64,7 +64,7 @@ public class Sorter {
         hw.sorter.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         double voltage = hw.getBatteryVoltage();
-        double dynamicKD = 0.000019 - (voltage - 12.0) * 0.0000005;
+        double dynamicKD = 0.0000185 - (voltage - 12.0) * 0.00000025;
         sorterPID = new PIDController(new PIDCoefficients(kP, kI, dynamicKD));
 
 
@@ -80,7 +80,7 @@ public class Sorter {
         lastTime = now;
 
         double voltage = hw.getBatteryVoltage();
-        double dynamicKD = 0.000019 - (voltage - 12.0) * 0.0000005;
+        double dynamicKD = 0.0000165 - (voltage - 12.0) * 0.000000125;
         sorterPID.setCoefficients(new PIDCoefficients(kP, kI, dynamicKD));
 
         int position = hw.sorter.getCurrentPosition();
@@ -196,7 +196,7 @@ public class Sorter {
     public boolean atTarget() {
         double error = targetTicks - hw.sorter.getCurrentPosition();
 
-        if (Math.abs(error) < 180) {
+        if (Math.abs(error) < 190) {
             if (stableSince == 0) {
                 stableSince = System.currentTimeMillis();
             }

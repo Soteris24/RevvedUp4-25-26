@@ -65,7 +65,7 @@ public class DriverOp extends LinearOpMode {
         drivetrain = new Drivetrain(hw, follower, false);
         intake         = new Intake(hw, false);
         sorter         = new Sorter(hw, intake, false);
-        shooter        = new Shooter2(hw, false);
+        shooter        = new Shooter2(hw, true);
         artifactSystem = new ArtifactSystem(hw, telemetry, sorter, shooter, intake, false);
         calc           = new ShooterCalculator(distanceTable, rpmTable); //NOT USED
 
