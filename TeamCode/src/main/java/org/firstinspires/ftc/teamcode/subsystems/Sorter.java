@@ -182,6 +182,10 @@ public class Sorter {
         stuckDetectionState = 0;
     }
 
+    public void adjustTargetTicks(int delta) {
+        targetTicks += delta;
+    }
+
     public void resetPID() {
         sorterPID.reset();
         hw.sorter.setPower(0);

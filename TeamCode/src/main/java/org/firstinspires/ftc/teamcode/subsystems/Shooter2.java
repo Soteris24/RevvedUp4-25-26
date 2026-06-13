@@ -9,25 +9,25 @@ import org.firstinspires.ftc.teamcode.utils.Convertor;
 
 @Configurable
 public class Shooter2 {
-RobotHardware hw;
+    RobotHardware hw;
 
-public static double kP = 0.02; //0.02
-public static double kI = 0;
-public static double kD = 0.02;
-public static double kV = 10.1;
+    public static double kP = 0.02; //0.02
+    public static double kI = 0;
+    public static double kD = 0.02;
+    public static double kV = 10.1;
 
-public double targetVelRPM;
-public double targetVelTPS;
+    public double targetVelRPM;
+    public double targetVelTPS;
 
-public PanelsTelemetry panelsTelemetry = PanelsTelemetry.INSTANCE;
-public  boolean telemetryOn;
-public double atTargetStartTime = -1;
-public double atTargetDelayTime = 500;
+    public PanelsTelemetry panelsTelemetry = PanelsTelemetry.INSTANCE;
+    public  boolean telemetryOn;
+    public double atTargetStartTime = -1;
+    public double atTargetDelayTime = 500;
 
     public Shooter2 (RobotHardware hw, boolean telemetryOn) {
         this.hw = hw;
         this.telemetryOn = telemetryOn;
-   }
+    }
 
     public void setPIDFCoefficients() {
         double voltage = hw.getBatteryVoltage();
@@ -38,14 +38,14 @@ public double atTargetDelayTime = 500;
         hw.rightShooter.setVelocityPIDFCoefficients(kP, kI, kD, compensatedF);
     }
 
-   public void setTargetVelRPM(double RPM){
+    public void setTargetVelRPM(double RPM){
         targetVelRPM = RPM;
         targetVelTPS = Convertor.shooterTPStoRPM(targetVelRPM);
         hw.leftShooter.setVelocity(targetVelRPM);
         hw.rightShooter.setVelocity(targetVelRPM);
         updateTelemetry();
-   }
-   public double currentVelocity(){
+    }
+    public double currentVelocity(){
         double leftShooterRPM = Convertor.shooterTPStoRPM(hw.leftShooter.getVelocity(AngleUnit.DEGREES));
         double rightShooterRPM = Convertor.shooterTPStoRPM(hw.rightShooter.getVelocity(AngleUnit.DEGREES));
         return  (rightShooterRPM + rightShooterRPM) / 2;

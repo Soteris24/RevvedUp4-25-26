@@ -144,6 +144,12 @@ public class DriverOp extends LinearOpMode {
             if (yEdge) {
                 artifactSystem.toggleIntake();
             }
+            if (gamepad2.left_trigger >= 0.5) {
+                sorter.adjustTargetTicks(50);
+            }
+            if (gamepad2.right_trigger >= 0.5) {
+                sorter.adjustTargetTicks(-50);
+            }
 
             if (artifactSystem.robotState == ArtifactSystem.RobotState.INTAKE) {
                 artifactSystem.setIntakeReverse(gamepad2.a, currentTime);
@@ -152,12 +158,6 @@ public class DriverOp extends LinearOpMode {
                 }
                 if (rbEdge) {
                     artifactSystem.manualDetect("P");
-                }
-                if (ltEdge) {
-                    artifactSystem.inspectSlot("G");
-                }
-                if (rtEdge) {
-                    artifactSystem.inspectSlot("P");
                 }
             } else if (artifactSystem.robotState == ArtifactSystem.RobotState.SHOOTING) {
                 if (bEdge) {

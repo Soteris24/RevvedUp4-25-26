@@ -39,7 +39,7 @@ public class ArtifactSystem {
     private int motifProgress = 0;
 
     public double rpm = SHORT_RPM;
-    public static final double SHORT_RPM = 1980;
+    public static final double SHORT_RPM = 1920;
     public static final double LONG_RPM = 2450;
     public double currentDistance = 48;
 
@@ -226,6 +226,14 @@ public class ArtifactSystem {
         lastSlotSwitchTime = System.currentTimeMillis();
     }
 
+    public void nudgeSorterForward() {
+        sorter.adjustTargetTicks(50);
+    }
+
+    public void nudgeSorterBackward() {
+        sorter.adjustTargetTicks(-50);
+    }
+
     public void seedArtifacts(String... colors) {
         resetSlot();
         int count = Math.min(colors.length, storedArtifacts.length);
@@ -335,9 +343,12 @@ public class ArtifactSystem {
                     //transferStartTime = currentTime;
                 }
                 if (!transferInProgress && currentTime - transferStartTime > shootPhase2) {
-                    if (artifactCount <= 0 && currentTime - transferStartTime > shootPhase2 + 1) {
+                    if (artifactCount <= 0) {
                         autoFire = false;
-                        enterIntakeState();
+                        if (currentTime - transferStartTime > shootPhase2 + 0.5) {
+
+                            enterIntakeState();
+                        }
                     } else if (autoFire) {
                         startNextAutoShot();
                     } else {
