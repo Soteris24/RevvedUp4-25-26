@@ -96,9 +96,14 @@ public class DriverOp extends LinearOpMode {
             double rotInput;
 
             if (gamepad1.a) {
-                rotInput = drivetrain.facePoint(40, 0); // returns a rotation power
+                rotInput = drivetrain.facePoint(20, 0); // returns a rotation power
             } else {
-                rotInput = rx;
+                if (artifactSystem.robotState == ArtifactSystem.RobotState.SHOOTING) {
+                    rotInput = rx/4;
+                } else {
+                    rotInput = rx;
+                }
+
             }
 
             drivetrain.drive(y, x, rotInput);

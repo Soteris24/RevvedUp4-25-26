@@ -22,7 +22,7 @@ public double targetVelTPS;
 public PanelsTelemetry panelsTelemetry = PanelsTelemetry.INSTANCE;
 public  boolean telemetryOn;
 public double atTargetStartTime = -1;
-public double atTargetDelayTime = 300;
+public double atTargetDelayTime = 500;
 
     public Shooter2 (RobotHardware hw, boolean telemetryOn) {
         this.hw = hw;

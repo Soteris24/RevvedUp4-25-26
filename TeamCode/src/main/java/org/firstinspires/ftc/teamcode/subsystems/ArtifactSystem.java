@@ -39,12 +39,12 @@ public class ArtifactSystem {
     private int motifProgress = 0;
 
     public double rpm = SHORT_RPM;
-    public static final double SHORT_RPM = 2030;
+    public static final double SHORT_RPM = 1980;
     public static final double LONG_RPM = 2450;
     public double currentDistance = 48;
 
     private static final double[] DISTANCE_TABLE = {24, 48, 72, 96};
-    private static final double[] RPM_TABLE = {2000, 2100, 2300, 2500};
+    private static final double[] RPM_TABLE = {1800, 1900, 2000, 2200};
 
     private String pendingShootColor = null;
     private boolean transferInProgress = false;
@@ -60,8 +60,8 @@ public class ArtifactSystem {
     private boolean manualTransferActive = false;
     private double manualTransferStart = 0;
     private static final double MANUAL_TRANSFER_SEC = 0.3;
-    public double shootPhase1 = 0.17;
-    public double shootPhase2 = 0.29;
+    public double shootPhase1 = 0.18;
+    public double shootPhase2 = 0.37; //0.29
     boolean dynamicShoot = false;
 
     private boolean lastDetected = false;
@@ -335,7 +335,7 @@ public class ArtifactSystem {
                     //transferStartTime = currentTime;
                 }
                 if (!transferInProgress && currentTime - transferStartTime > shootPhase2) {
-                    if (artifactCount <= 0 && currentTime - transferStartTime > shootPhase2+0.10) {
+                    if (artifactCount <= 0 && currentTime - transferStartTime > shootPhase2 + 1) {
                         autoFire = false;
                         enterIntakeState();
                     } else if (autoFire) {
@@ -382,7 +382,7 @@ public class ArtifactSystem {
         intake.intakeOn = false;
         manualTransferActive = false;
         hw.sorterTransfer.setPosition(RobotHardware.transferIdle);
-
+        hw.sorterTransfer.setPwmDisable();
         if (offSetApplied) {
             sorter.moveDegrees(55);
         }
@@ -410,6 +410,7 @@ public class ArtifactSystem {
         manualTransferActive = false;
         autoFire = false;
         shooter.setTargetVelRPM(rpm);
+        hw.sorterTransfer.setPwmEnable();
     }
 
     private void enterManualState() {

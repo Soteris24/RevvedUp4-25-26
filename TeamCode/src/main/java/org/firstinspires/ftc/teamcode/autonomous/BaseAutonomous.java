@@ -196,6 +196,7 @@ public abstract class BaseAutonomous extends LinearOpMode {
             if      (currentCycle == 0) { currentCycle = 1; transitionToState(AutoState.GO_TO_COLLECTION); }
             else if (currentCycle == 1) { currentCycle = 2; transitionToState(AutoState.GO_TO_COLLECTION); }
             else                        { transitionToState(AutoState.RETURN_HOME); }
+            artifactSystem.switchToIntake();
         }
 
         if (stateTimer.seconds() > 20.0) {
@@ -207,15 +208,13 @@ public abstract class BaseAutonomous extends LinearOpMode {
     private void runGoToCollection() {
         if (!stateStarted) {
             stateStarted = true;
-            artifactSystem.switchToIntake();
+            intake.intakeOn = true;
             if      (currentCycle == 1) goToPose(pos1, "linear");
             else if (currentCycle == 2) goToPose(pos2, "linear");
         }
 
         if (hasReachedTarget()) {
-            intake.forwardPower = 1.0;
             follower.setMaxPower(1);
-            artifactSystem.toggleIntake();
             transitionToState(AutoState.COLLECT_BALLS);
         }
 

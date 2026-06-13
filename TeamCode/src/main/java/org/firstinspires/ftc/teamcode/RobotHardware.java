@@ -10,6 +10,8 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.hardware.ServoImpl;
+import com.qualcomm.robotcore.hardware.ServoImplEx;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -18,11 +20,11 @@ public class RobotHardware {
 
     public DcMotor leftFront, leftBack, rightFront, rightBack, intake;
     public DcMotorEx sorter, leftShooter, rightShooter;
-    public Servo sorterTransfer;
+    public ServoImplEx sorterTransfer;
     public ColorRangeSensor colorSensor, colorSensor2;
     public DistanceSensor distanceSensor;
-    public static double transferIdle = 0.35;
-    public static double transferPush = 0.70; //0.25
+    public static double transferIdle = 0.99;
+    public static double transferPush = 0.65;
     public static double DEG_PER_SLOT = 120;
     public int sorterTarget = 0;
 
@@ -69,7 +71,7 @@ public class RobotHardware {
         this.sorter = hwMap.get(DcMotorEx.class, "sorter");
         this.leftShooter = hwMap.get(DcMotorEx.class, "leftShooter");
         this.rightShooter = hwMap.get(DcMotorEx.class, "rightShooter");
-        this.sorterTransfer = hwMap.get(Servo.class, "sorterTransfer");
+        this.sorterTransfer = hwMap.get(ServoImplEx.class, "sorterTransfer");
 
         this.leftShooter.setDirection(DcMotorSimple.Direction.REVERSE);
         this.rightShooter.setDirection(DcMotorSimple.Direction.FORWARD);

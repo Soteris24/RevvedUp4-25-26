@@ -5,8 +5,11 @@ import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathChain;
+import com.qualcomm.robotcore.hardware.PIDCoefficients;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.RobotHardware;
+import org.firstinspires.ftc.teamcode.utils.PIDController;
 
 public class Drivetrain {
     RobotHardware hw;
@@ -15,10 +18,15 @@ public class Drivetrain {
     public boolean telemetryOn;
     //private final Pose startPose = new Pose(0, 0, Math.toRadians(45));
 
+    public PIDController headingPID;
+    private ElapsedTime pidTimer = new ElapsedTime();
+    public static PIDCoefficients headingCoeffs = new PIDCoefficients(0.1, 0, 0.06);
+
     public Drivetrain(RobotHardware hw, Follower follower, boolean telemetryOn) {
         this.hw = hw;
         this.follower = follower;
         this.telemetryOn = telemetryOn;
+        this.headingPID = new PIDController(headingCoeffs);
     }
 
     public void drive(double y, double x, double rx) {
@@ -106,8 +114,16 @@ public class Drivetrain {
         while (headingError > Math.PI)  headingError -= 2 * Math.PI;
         while (headingError < -Math.PI) headingError += 2 * Math.PI;
 
-        double kP = 0.1; // tune this
-        return Math.max(-1.0, Math.min(1.0, headingError * kP));
+        double dt = pidTimer.seconds();
+        pidTimer.reset();
+
+        if (dt > 0.5) { // Reset if the loop was paused or just started
+            headingPID.reset();
+            dt = 0.01; // Avoid division by zero or huge jump
+        }
+
+        double output = headingPID.update(headingError, dt);
+        return Math.max(-1.0, Math.min(1.0, output));
     }
 
 }
