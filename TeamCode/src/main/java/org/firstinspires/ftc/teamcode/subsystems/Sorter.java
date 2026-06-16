@@ -28,7 +28,7 @@ public class Sorter {
     public static double minPower = 0.1;   // overcome static friction
     public static int slowZone = 700;        // ticks
     public static int targetTolerance = 200;  // ticks
-    public static long settleTime = 10;      // ms
+    public static long settleTime = 20;      // ms
 
     // ===== STUCK DETECTION PARAMS =====
     public static double stuckErrorThreshold = 150;  // error must be within this to not count as "stuck"
@@ -65,7 +65,7 @@ public class Sorter {
 
         double voltage = hw.getBatteryVoltage();
         double dynamicKD = 0.0000165 - (voltage - 12.0) * 0.000000125;
-        sorterPID = new PIDController(new PIDCoefficients(kP, kI, dynamicKD));
+        sorterPID = new PIDController(new PIDCoefficients(kP, kI, kD));
 
 
         targetTicks = hw.sorter.getCurrentPosition();

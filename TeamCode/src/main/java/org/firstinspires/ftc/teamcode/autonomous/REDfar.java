@@ -15,7 +15,7 @@ public class REDfar extends BaseAutonomous1 {
 
     @Override
     protected Pose getShootingPose() {
-        return new Pose(6, -0.2, Math.toRadians(-28));
+        return new Pose(6, -0.2, Math.toRadians(-26));
     }
 
     @Override

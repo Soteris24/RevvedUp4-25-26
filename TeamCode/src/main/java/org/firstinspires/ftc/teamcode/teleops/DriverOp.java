@@ -42,6 +42,7 @@ public class DriverOp extends LinearOpMode {
     List<LynxModule> allHubs;
 
     public static double edgeLatchSeconds = 0.12;
+    private boolean slowDrivetrain = false;
 
     LatchedEdgeButton yButton = new LatchedEdgeButton(edgeLatchSeconds);
     LatchedEdgeButton xButton = new LatchedEdgeButton(edgeLatchSeconds);
@@ -71,7 +72,7 @@ public class DriverOp extends LinearOpMode {
 
         allHubs = hardwareMap.getAll(LynxModule.class);
         for (LynxModule hub : allHubs) {
-            hub.setBulkCachingMode(LynxModule.BulkCachingMode.OFF);
+            hub.setBulkCachingMode(LynxModule.BulkCachingMode.AUTO);
         }
 
         waitForStart();
@@ -101,13 +102,23 @@ public class DriverOp extends LinearOpMode {
                 if (artifactSystem.robotState == ArtifactSystem.RobotState.SHOOTING) {
                     rotInput = rx/4;
                 } else {
-                    rotInput = rx;
+                    if (slowDrivetrain) {
+                        rotInput = rx / 2;
+                    } else {
+                        rotInput = rx;
+                    }
+
                 }
 
             }
 
             drivetrain.drive(y, x, rotInput);
-
+            if (gamepad1.right_bumper) {
+                slowDrivetrain = true;
+            }
+            if (gamepad1.left_bumper) {
+                slowDrivetrain = false;
+            }
 
             Pose currentPose = follower.getPose();
             double dx = 0 - currentPose.getX(); // goal coordinates
@@ -180,7 +191,7 @@ public class DriverOp extends LinearOpMode {
             sorter.update();
             follower.update();
             drivetrain.telemetryOn = false;
-
+            telemetry.addData("S",slowDrivetrain);
             telemetry.update();
         }
 

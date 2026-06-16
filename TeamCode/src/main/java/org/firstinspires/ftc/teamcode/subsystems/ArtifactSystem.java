@@ -34,13 +34,15 @@ public class ArtifactSystem {
     public int nextSlotIndex = 0;
     public boolean offSetApplied = false;
     public boolean artifactPresent = false;
+    private int shotsFired = 0;
+    private final boolean[] firedSlots = new boolean[3];
 
     public String[] motif = {"G", "P", "P"};
     private int motifProgress = 0;
 
     public double rpm = SHORT_RPM;
-    public static final double SHORT_RPM = 1920;
-    public static final double LONG_RPM = 2450;
+    public static final double SHORT_RPM = 1820;
+    public static final double LONG_RPM = 2250;
     public double currentDistance = 48;
 
     private static final double[] DISTANCE_TABLE = {24, 48, 72, 96};
@@ -55,7 +57,7 @@ public class ArtifactSystem {
     private double intakeRotateStartTime = 0;
     private double rotateStartTime = 0;
     private static final double INTAKE_SETTLE_SEC = 0.1;
-    private static final double ROTATE_GUARD_SEC = 0;
+    private static final double ROTATE_GUARD_SEC = 0.05;
 
     private boolean manualTransferActive = false;
     private double manualTransferStart = 0;
@@ -145,11 +147,13 @@ public class ArtifactSystem {
     }
 
     public void triggerAutoFire() {
-        if (robotState != RobotState.SHOOTING || shootSubState != ShootSubState.IDLE || artifactCount <= 0) {
+        if (robotState != RobotState.SHOOTING || shootSubState != ShootSubState.IDLE) {
             return;
         }
 
         autoFire = true;
+        shotsFired = 0;
+        Arrays.fill(firedSlots, false);
         pendingShootColor = null;
         startNextAutoShot();
     }
@@ -306,7 +310,7 @@ public class ArtifactSystem {
 
         switch (shootSubState) {
             case MOVE_TO_SLOT:
-                rotateToSlot(targetSlot, true);
+                rotateToSlot(targetSlot, false);
                 sorterMoved = false;
                 rotateStartTime = currentTime;
                 shootSubState = ShootSubState.ROTATE_SORTER;
@@ -317,7 +321,7 @@ public class ArtifactSystem {
                     break;
                 }
                 if (!sorterMoved && sorter.atTarget()) {
-                    rotateToSlot(targetSlot, true);
+                    rotateToSlot(targetSlot, false);
                     sorterMoved = true;
                 } else if (sorterMoved && sorter.atTarget()) {
                     transferInProgress = true;
@@ -343,14 +347,13 @@ public class ArtifactSystem {
                     //transferStartTime = currentTime;
                 }
                 if (!transferInProgress && currentTime - transferStartTime > shootPhase2) {
-                    if (artifactCount <= 0) {
-                        autoFire = false;
+                    if (autoFire) {
+                        startNextAutoShot();
+                    } else if (artifactCount <= 0) {
                         if (currentTime - transferStartTime > shootPhase2 + 0.5) {
 
                             enterIntakeState();
                         }
-                    } else if (autoFire) {
-                        startNextAutoShot();
                     } else {
                         shootSubState = ShootSubState.IDLE;
                     }
@@ -455,14 +458,40 @@ public class ArtifactSystem {
     }
 
     private void startNextAutoShot() {
-        int slot = findAnySlot();
-        if (slot == -1) {
+        if (shotsFired >= 3) {
             autoFire = false;
             enterIntakeState();
             return;
         }
-        targetSlot = slot;
-        pendingShootColor = storedArtifacts[slot];
+
+        int bestSlot = -1;
+        // Priority 1: Artifacts that haven't been fired
+        for (int i = 0; i < storedArtifacts.length; i++) {
+            if (!firedSlots[i] && (Objects.equals(storedArtifacts[i], "G") || Objects.equals(storedArtifacts[i], "P"))) {
+                bestSlot = i;
+                break;
+            }
+        }
+        // Priority 2: Empty slots that haven't been fired
+        if (bestSlot == -1) {
+            for (int i = 0; i < storedArtifacts.length; i++) {
+                if (!firedSlots[i]) {
+                    bestSlot = i;
+                    break;
+                }
+            }
+        }
+
+        if (bestSlot == -1) {
+            autoFire = false;
+            enterIntakeState();
+            return;
+        }
+
+        targetSlot = bestSlot;
+        firedSlots[targetSlot] = true;
+        shotsFired++;
+        pendingShootColor = storedArtifacts[targetSlot];
         shootSubState = ShootSubState.MOVE_TO_SLOT;
     }
 
@@ -582,6 +611,8 @@ public class ArtifactSystem {
         motifProgress = 0;
         offSetApplied = false;
         artifactPresent = false;
+        shotsFired = 0;
+        Arrays.fill(firedSlots, false);
         Arrays.fill(storedArtifacts, null);
     }
 

@@ -50,6 +50,7 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
     private int lastArtifactCount = 0;
 
     private boolean intakeSlowActive = false;
+    private boolean hasResumed = false;
     private ElapsedTime intakeSlowTimer = new ElapsedTime();
 
     enum AutoState {
@@ -88,7 +89,7 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
             follower.update();
             sorter.update();
             shooter.setPIDFCoefficients();
-
+            intake.intake(false,false,currentTime);
             artifactSystem.update(currentTime);
             // Detect new artifact collected
             if (artifactSystem.artifactCount > lastArtifactCount) {
@@ -229,16 +230,36 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
     private void runCollectBalls() {
         if (!stateStarted) {
             stateStarted = true;
-            follower.setMaxPower(0.26* (12.8 / hw.getBatteryVoltage() / 1.05)); //
+            intakeSlowActive = false; // false = haven't paused for the 2nd ball yet
+            hasResumed = false;
+            follower.setMaxPower(0.6);
             if      (currentCycle == 1) goToPose(pos1Forward, "linear");
             else if (currentCycle == 2) goToPose(pos2Forward, "linear");
-        } else if (artifactSystem.artifactCount >= 3
-                || hasReachedTarget()
-                || stateTimer.seconds() > 6.0) {
-
-            transitionToState(AutoState.RETURN_TO_SHOOT);
         }
 
+        // 1. Detect 2 balls and pause
+        if (!intakeSlowActive && artifactSystem.artifactCount >= 2) {
+            intakeSlowActive = true;
+            follower.setMaxPower(0);
+            intakeSlowTimer.reset();
+        }
+
+        // 2. After pause, speed up to 0.8 and resume movement
+        if (intakeSlowActive && !hasResumed && intakeSlowTimer.seconds() > 0.5) {
+            hasResumed = true;
+            follower.setMaxPower(0.8);
+            if      (currentCycle == 1) goToPose(pos1Forward, "linear");
+            else if (currentCycle == 2) goToPose(pos2Forward, "linear");
+        }
+
+        // 3. Exit condition (3 balls, target reached, or timeout)
+        if (artifactSystem.artifactCount >= 3
+                || (hasResumed && intakeSlowTimer.seconds() > 0.2 && hasReachedTarget())
+                || stateTimer.seconds() > 5) {
+                transitionToState(BaseAutonomous1.AutoState.RETURN_TO_SHOOT);
+
+
+        }
     }
 
     private void runReturnToShoot() {

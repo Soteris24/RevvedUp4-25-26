@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.pedroPathing;
 
+import com.pedropathing.control.FilteredPIDFCoefficients;
+import com.pedropathing.control.PIDFCoefficients;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.follower.FollowerConstants;
 import com.pedropathing.ftc.FollowerBuilder;
@@ -15,8 +17,15 @@ public class Constants {
     public static FollowerConstants followerConstants = new FollowerConstants()
             .mass(11)
      //       .translationalPIDFCoefficients(new PIDFCoefficients(0.1, 0, 0.01, 0))
-            .forwardZeroPowerAcceleration(-65.6)
-            .lateralZeroPowerAcceleration(-90);
+            .forwardZeroPowerAcceleration(-52.3)
+            .lateralZeroPowerAcceleration(-56)
+            .useSecondaryDrivePIDF(false)
+            .useSecondaryTranslationalPIDF(false)
+            .useSecondaryHeadingPIDF(false)
+            .translationalPIDFCoefficients(new PIDFCoefficients(0.035,0,0.005,0.03))
+            .headingPIDFCoefficients(new PIDFCoefficients(1.1,0,0.02,0.03))
+            .drivePIDFCoefficients(new FilteredPIDFCoefficients(0.025,0,0.005,0, 0.03))
+            .centripetalScaling(25);
 
     public static PathConstraints pathConstraints = new PathConstraints(0.99, 100, 1, 1);
 
@@ -26,8 +35,8 @@ public class Constants {
             .rightRearMotorName("rightBack")
             .leftRearMotorName("leftBack")
             .leftFrontMotorName("leftFront")
-            .xVelocity(62)
-            .yVelocity(51)
+            .xVelocity(64)
+            .yVelocity(49)
             .leftFrontMotorDirection(DcMotorSimple.Direction.FORWARD)
             .leftRearMotorDirection(DcMotorSimple.Direction.FORWARD)
             .rightFrontMotorDirection(DcMotorSimple.Direction.REVERSE)

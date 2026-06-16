@@ -21,6 +21,8 @@ public abstract class BaseAutonomous extends LinearOpMode {
     protected abstract Pose getPos1();
     protected abstract Pose getPos1Forward();
     protected abstract Pose getPos2();
+    protected abstract Pose getPosgate();
+    protected abstract Pose getPosgateready();
     protected abstract Pose getPos2Forward();
     RobotHardware hw;
     Drivetrain drivetrain;
@@ -38,23 +40,27 @@ public abstract class BaseAutonomous extends LinearOpMode {
     private Pose pos1;
     private Pose pos1Forward;
     private Pose pos2;
+    private Pose posgate;
+    private Pose posgateready;
     private Pose pos2Forward;
 
     private boolean isMoving = false;
     private PathChain currentPath = null;
 
     private int currentCycle = 0;
+    private boolean secondshoot = false;
 
     // stateStarted prevents re-entering the init block after arrival
     private boolean stateStarted = false;
     private int lastArtifactCount = 0;
 
     private boolean intakeSlowActive = false;
+    private boolean hasResumed = false;
     private ElapsedTime intakeSlowTimer = new ElapsedTime();
 
     enum AutoState {
         INIT, GO_TO_SHOOTING_POS, GO_TO_COLLECTION,
-        COLLECT_BALLS, RETURN_TO_SHOOT, RETURN_HOME, COMPLETE
+        COLLECT_BALLS, RETURN_TO_SHOOT, OPEN_GATE, RETURN_HOME, COMPLETE
     }
 
     AutoState currentState = AutoState.INIT;
@@ -66,6 +72,8 @@ public abstract class BaseAutonomous extends LinearOpMode {
         pos1         = getPos1();
         pos1Forward  = getPos1Forward();
         pos2         = getPos2();
+        posgate      = getPosgate();
+        posgateready = getPosgateready();
         pos2Forward  = getPos2Forward();
 
         initializeRobot();
@@ -78,7 +86,7 @@ public abstract class BaseAutonomous extends LinearOpMode {
         if (!opModeIsActive()) return;
 
         runtime.reset();
-        follower.setMaxPower(0.8);
+        follower.setMaxPower(1);
         transitionToState(AutoState.GO_TO_SHOOTING_POS);
         currentCycle = 0;
 
@@ -88,10 +96,10 @@ public abstract class BaseAutonomous extends LinearOpMode {
             follower.update();
             sorter.update();
             shooter.setPIDFCoefficients();
-
+            intake.intake(false,false,currentTime);
             artifactSystem.update(currentTime);
 
-            if (runtime.seconds() > 28.5
+            if (runtime.seconds() > 29
                     && currentState != AutoState.RETURN_HOME
                     && currentState != AutoState.COMPLETE) {
                 transitionToState(AutoState.RETURN_HOME);
@@ -102,6 +110,7 @@ public abstract class BaseAutonomous extends LinearOpMode {
                 case GO_TO_COLLECTION:   runGoToCollection();  break;
                 case COLLECT_BALLS:      runCollectBalls();    break;
                 case RETURN_TO_SHOOT:    runReturnToShoot(currentTime);   break;
+                case OPEN_GATE:          runOpenGate();   break;
                 case RETURN_HOME:        runReturnHome();      break;
                 case COMPLETE:           runComplete(); return;
             }
@@ -138,7 +147,7 @@ public abstract class BaseAutonomous extends LinearOpMode {
             case "constant":
                 path = follower.pathBuilder()
                         .addPath(new BezierLine(currentPose, targetPose))
-                        .setConstantHeadingInterpolation(currentPose.getHeading())
+                        .setConstantHeadingInterpolation(targetPose.getHeading())
                         .build();
                 break;
             case "tangent":
@@ -180,9 +189,9 @@ public abstract class BaseAutonomous extends LinearOpMode {
     private void runGoToShootingPos() {
         if (!stateStarted) {
             stateStarted = true;
-            follower.setMaxPower(0.8);
+            follower.setMaxPower(1);
             intake.stop();
-            goToPose(shootingPose, "linear");
+            goToPose(shootingPose, "constant");
             artifactSystem.switchToShooting(ArtifactSystem.SHORT_RPM, false);
         }
 
@@ -190,7 +199,10 @@ public abstract class BaseAutonomous extends LinearOpMode {
 
         if (arrived) {
             artifactSystem.triggerAutoFire();
+            secondshoot = true;
         }
+
+
 
         if (arrived && !artifactSystem.isActivelyShooting() && artifactSystem.artifactCount == 0) {
             if      (currentCycle == 0) { currentCycle = 1; transitionToState(AutoState.GO_TO_COLLECTION); }
@@ -208,13 +220,13 @@ public abstract class BaseAutonomous extends LinearOpMode {
     private void runGoToCollection() {
         if (!stateStarted) {
             stateStarted = true;
-            intake.intakeOn = true;
-            if      (currentCycle == 1) goToPose(pos1, "linear");
-            else if (currentCycle == 2) goToPose(pos2, "linear");
+            if      (currentCycle == 1) goToPose(pos1, "constant");
+            else if (currentCycle == 2) goToPose(pos2, "constant");
         }
 
         if (hasReachedTarget()) {
             follower.setMaxPower(1);
+            artifactSystem.toggleIntake();
             transitionToState(AutoState.COLLECT_BALLS);
         }
 
@@ -227,23 +239,47 @@ public abstract class BaseAutonomous extends LinearOpMode {
     private void runCollectBalls() {
         if (!stateStarted) {
             stateStarted = true;
-            follower.setMaxPower(0.26 * (12.8 / hw.getBatteryVoltage() / 1.05)); //
+            intakeSlowActive = false; // false = haven't paused for the 2nd ball yet
+            hasResumed = false;
+            follower.setMaxPower(0.6);
             if      (currentCycle == 1) goToPose(pos1Forward, "linear");
             else if (currentCycle == 2) goToPose(pos2Forward, "linear");
-        } else if (artifactSystem.artifactCount >= 3
-                || hasReachedTarget()
-                || stateTimer.seconds() > 6.0) {
-
-            transitionToState(AutoState.RETURN_TO_SHOOT);
         }
 
+        // 1. Detect 2 balls and pause
+        if (!intakeSlowActive && artifactSystem.artifactCount >= 2) {
+            intakeSlowActive = true;
+            follower.setMaxPower(0);
+            intakeSlowTimer.reset();
+        }
+
+        // 2. After pause, speed up to 0.8 and resume movement
+        if (intakeSlowActive && !hasResumed && intakeSlowTimer.seconds() > 0.5) {
+            hasResumed = true;
+            follower.setMaxPower(0.8);
+            if      (currentCycle == 1) goToPose(pos1Forward, "linear");
+            else if (currentCycle == 2) goToPose(pos2Forward, "linear");
+        }
+
+        // 3. Exit condition (3 balls, target reached, or timeout)
+        if (artifactSystem.artifactCount >= 3
+                || (hasResumed && intakeSlowTimer.seconds() > 0.2 && hasReachedTarget())
+                || stateTimer.seconds() > 5) {
+
+            if (currentCycle == 2) {
+                transitionToState(AutoState.OPEN_GATE);
+            } else {
+                transitionToState(AutoState.RETURN_TO_SHOOT);
+            }
+
+        }
     }
 
     private void runReturnToShoot(double currentTime) {
         if (!stateStarted) {
             stateStarted = true;
             follower.setMaxPower(1);
-            goToPose(shootingPose, "linear");
+            goToPose(shootingPose, "constant");
         }
 
         if (stateTimer.seconds() < 1.0) {
@@ -265,12 +301,30 @@ public abstract class BaseAutonomous extends LinearOpMode {
         }
     }
 
+    private void runOpenGate() {
+        if (!stateStarted) {
+            stateStarted = true;
+            follower.setMaxPower(1.0);
+            goToPose(posgateready, "linear");
+        }
+
+        if (hasReachedTarget()) {
+            goToPose(posgate, "constant");
+        }
+
+        if (stateTimer.seconds() > 3.0) {
+            follower.setMaxPower(0.7);
+            isMoving = false;
+            transitionToState(AutoState.RETURN_TO_SHOOT);
+        }
+    }
+
     private void runReturnHome() {
         if (!stateStarted) {
             stateStarted = true;
             artifactSystem.switchToIntake();
             follower.setMaxPower(1.0);
-            goToPose(shootingPose, "constant");
+            goToPose(pos2, "constant");
         }
 
         if (hasReachedTarget()) {

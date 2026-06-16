@@ -10,7 +10,7 @@ public class BLUE extends BaseAutonomous {
 
     @Override
     protected Pose getStartPose() {
-        return new Pose(0, 0, Math.toRadians(45));
+        return new Pose(0, 0, Math.toRadians(47));
     }
 
     @Override
@@ -20,21 +20,31 @@ public class BLUE extends BaseAutonomous {
 
     @Override
     protected Pose getPos1() {
-        return new Pose(-39, -23, Math.toRadians(91));
+        return new Pose(-42, -30, Math.toRadians(90));
     }
 
     @Override
     protected Pose getPos1Forward() {
-        return new Pose(-39, 7, Math.toRadians(93));
+        return new Pose(-42, 7, Math.toRadians(90));
     }
 
     @Override
     protected Pose getPos2() {
-        return new Pose(-59, -20, Math.toRadians(91));
+        return new Pose(-70, -30, Math.toRadians(90));
+    }
+
+    @Override
+    protected Pose getPosgate() {
+        return new Pose(-57, 12, Math.toRadians(90));
+    }
+
+    @Override
+    protected Pose getPosgateready() {
+        return new Pose(-57, -5, Math.toRadians(90));
     }
 
     @Override
     protected Pose getPos2Forward() {
-        return new Pose(-60, 4, Math.toRadians(93));
+        return new Pose(-70, 15, Math.toRadians(90));
     }
 }
