@@ -22,6 +22,8 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
     protected abstract Pose getPos1Forward();
     protected abstract Pose getPos2();
     protected abstract Pose getPos2Forward();
+    protected abstract Pose getHumanPlayer();
+    protected abstract Pose getHumanPlayer2();
     RobotHardware hw;
     Drivetrain drivetrain;
     Sorter sorter;
@@ -39,6 +41,8 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
     private Pose pos1Forward;
     private Pose pos2;
     private Pose pos2Forward;
+    private Pose humanPlayer;
+    private Pose humanPlayer2;
 
     private boolean isMoving = false;
     private PathChain currentPath = null;
@@ -54,7 +58,7 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
     private ElapsedTime intakeSlowTimer = new ElapsedTime();
 
     enum AutoState {
-        INIT, GO_TO_SHOOTING_POS, GO_TO_COLLECTION,
+        INIT, GO_TO_SHOOTING_POS, GO_TO_COLLECTION, COLLECT_FROM_GATE,
         COLLECT_BALLS, RETURN_TO_SHOOT, RETURN_HOME, COMPLETE
     }
 
@@ -68,6 +72,8 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
         pos1Forward  = getPos1Forward();
         pos2         = getPos2();
         pos2Forward  = getPos2Forward();
+        humanPlayer  = getHumanPlayer();
+        humanPlayer2  = getHumanPlayer2();
 
         initializeRobot();
 
@@ -196,7 +202,7 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
 
         if (arrived && !artifactSystem.isActivelyShooting() && artifactSystem.artifactCount == 0) {
             if      (currentCycle == 0) { currentCycle = 1; transitionToState(AutoState.GO_TO_COLLECTION); }
-            else if (currentCycle == 1) { currentCycle = 2; transitionToState(AutoState.RETURN_HOME); }
+            else if (currentCycle == 1) { currentCycle = 2; transitionToState(AutoState.GO_TO_COLLECTION); }
             else                        { transitionToState(AutoState.RETURN_HOME); }
         }
 
@@ -210,14 +216,14 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
         if (!stateStarted) {
             stateStarted = true;
             artifactSystem.switchToIntake();
-            if      (currentCycle == 1) goToPose(pos1, "linear");
-            else if (currentCycle == 2) goToPose(pos2, "linear");
-        }
-
-        if (hasReachedTarget()) {
             intake.forwardPower = 1.0;
             follower.setMaxPower(1);
             artifactSystem.toggleIntake();
+            if      (currentCycle == 1) goToPose(pos1, "linear");
+            else if (currentCycle == 2) goToPose(humanPlayer, "constant");
+        }
+
+        if (hasReachedTarget()) {
             transitionToState(AutoState.COLLECT_BALLS);
         }
 
@@ -234,7 +240,7 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
             hasResumed = false;
             follower.setMaxPower(0.6);
             if      (currentCycle == 1) goToPose(pos1Forward, "linear");
-            else if (currentCycle == 2) goToPose(pos2Forward, "linear");
+            else if (currentCycle == 2) goToPose(humanPlayer2, "constant");
         }
 
         // 1. Detect 2 balls and pause
@@ -249,7 +255,7 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
             hasResumed = true;
             follower.setMaxPower(0.8);
             if      (currentCycle == 1) goToPose(pos1Forward, "linear");
-            else if (currentCycle == 2) goToPose(pos2Forward, "linear");
+            else if (currentCycle == 2) goToPose(humanPlayer2, "constant");
         }
 
         // 3. Exit condition (3 balls, target reached, or timeout)
@@ -257,8 +263,6 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
                 || (hasResumed && intakeSlowTimer.seconds() > 0.2 && hasReachedTarget())
                 || stateTimer.seconds() > 5) {
                 transitionToState(BaseAutonomous1.AutoState.RETURN_TO_SHOOT);
-
-
         }
     }
 

@@ -37,4 +37,14 @@ public class BLUEfar extends BaseAutonomous1 {
     protected Pose getPos2Forward() {
         return new Pose(6, 55, Math.toRadians(90));
     }
+
+    @Override
+    protected Pose getHumanPlayer() {
+        return new Pose(26, 35, Math.toRadians(90));
+    }
+
+    @Override
+    protected Pose getHumanPlayer2() {
+        return new Pose(26, 35, Math.toRadians(180));
+    }
 }
