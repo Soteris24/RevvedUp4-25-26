@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode;
 
 import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.telemetry.PanelsTelemetry;
+import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.hardware.ColorRangeSensor;
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -21,6 +22,7 @@ public class RobotHardware {
     public DcMotor leftFront, leftBack, rightFront, rightBack, intake;
     public DcMotorEx sorter, leftShooter, rightShooter;
     public ServoImplEx sorterTransfer;
+    public Limelight3A limelight;
     public ColorRangeSensor colorSensor, colorSensor2;
     public DistanceSensor distanceSensor;
     public static double transferIdle = 0.99;
@@ -72,6 +74,11 @@ public class RobotHardware {
         this.leftShooter = hwMap.get(DcMotorEx.class, "leftShooter");
         this.rightShooter = hwMap.get(DcMotorEx.class, "rightShooter");
         this.sorterTransfer = hwMap.get(ServoImplEx.class, "sorterTransfer");
+
+        this.limelight = hwMap.get(Limelight3A.class, "limelight");
+        this.limelight.setPollRateHz(100);
+        this.limelight.pipelineSwitch(9);
+        this.limelight.start();
 
         this.leftShooter.setDirection(DcMotorSimple.Direction.REVERSE);
         this.rightShooter.setDirection(DcMotorSimple.Direction.FORWARD);

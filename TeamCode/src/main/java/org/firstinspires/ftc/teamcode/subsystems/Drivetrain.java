@@ -2,9 +2,8 @@ package org.firstinspires.ftc.teamcode.subsystems;
 
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
-import com.pedropathing.paths.PathChain;
+import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.robotcore.hardware.PIDCoefficients;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -16,29 +15,27 @@ public class Drivetrain {
     Follower follower;
     PanelsTelemetry panelsTelemetry = PanelsTelemetry.INSTANCE;
     public boolean telemetryOn;
-    //private final Pose startPose = new Pose(0, 0, Math.toRadians(45));
 
     public PIDController headingPID;
+    public PIDController odometryHeadingPID;
     private ElapsedTime pidTimer = new ElapsedTime();
-    public static PIDCoefficients headingCoeffs = new PIDCoefficients(0.1, 0, 0.06);
+    public static PIDCoefficients headingCoeffs = new PIDCoefficients(1.5, 0.3, 0);
+    public static PIDCoefficients odometryCoeffs = new PIDCoefficients(0.2, 0, 0.0);
 
     public Drivetrain(RobotHardware hw, Follower follower, boolean telemetryOn) {
         this.hw = hw;
         this.follower = follower;
         this.telemetryOn = telemetryOn;
         this.headingPID = new PIDController(headingCoeffs);
+        this.odometryHeadingPID = new PIDController(odometryCoeffs);
     }
 
     public void drive(double y, double x, double rx) {
-        // =========================
-        // DRIVE
-        // =========================
         double lf = y + x + rx;
         double lb = y - x + rx;
         double rf = y - x - rx;
         double rb = y + x - rx;
 
-        // Cap powers to [-1, 1]
         double max = Math.max(Math.abs(lf), Math.max(Math.abs(lb), Math.max(Math.abs(rf), Math.abs(rb))));
         if (max > 1.0) {
             lf /= max;
@@ -58,35 +55,6 @@ public class Drivetrain {
             panelsTelemetry.getTelemetry().addData("RF", rf);
             panelsTelemetry.getTelemetry().addData("RB", rb);
         }
-
-        /* =========================
-        // ORIGINAL DRIVE CODE
-
-        double angle = Math.atan2(y,x);
-        double power = Math.hypot(x, y);
-
-        double sin = Math.sin(angle + Math.PI/4);
-        double cos = -Math.cos(angle + Math.PI/4);
-        double maxOrig = Math.max(Math.abs(sin), Math.abs(cos));
-
-        double lfOrig = (sin * power) / maxOrig + rx;
-        double lbOrig = (cos * power) / maxOrig + rx;
-        double rfOrig = (cos * power) / maxOrig - rx;
-        double rbOrig = (sin * power) / maxOrig - rx;
-
-        double maxPower = Math.max(Math.abs(lfOrig), Math.max(Math.abs(lbOrig), Math.max(Math.abs(rfOrig), Math.abs(rbOrig))));
-        if (maxPower > 1.0) {
-            lfOrig /= maxPower;
-            lbOrig /= maxPower;
-            rfOrig /= maxPower;
-            rbOrig /= maxPower;
-        }
-
-        hw.leftFront.setPower(lfOrig);
-        hw.leftBack.setPower(lbOrig);
-        hw.rightFront.setPower(rfOrig);
-        hw.rightBack.setPower(rbOrig);
-        */
     }
 
     public void setMotorPowers(double lf, double lb, double rf, double rb) {
@@ -100,6 +68,52 @@ public class Drivetrain {
         setMotorPowers(0, 0, 0, 0);
     }
 
+    private double lastKnownHeading = Double.NaN;
+
+    public double faceLimelightTarget() {
+        LLResult result = hw.limelight.getLatestResult();
+        
+        // 1. If camera has a valid target
+        if (result != null && result.isValid()) {
+            double tx = result.getTx(); 
+            
+            double dt = pidTimer.seconds();
+            pidTimer.reset();
+
+            if (dt > 0.5) {
+                headingPID.reset();
+                dt = 0.01;
+            }
+
+            // Only update "memory" when we are actually "on target" (e.g., < 1 degree)
+            if (Math.abs(tx) < 1.0) {
+                lastKnownHeading = follower.getPose().getHeading() + Math.toRadians(tx);
+            }
+
+            double output = headingPID.update(Math.toRadians(tx), dt);
+            return Math.max(-1.0, Math.min(1.0, output));
+        }
+        
+        // 2. If no target, use saved memory if available
+        if (!Double.isNaN(lastKnownHeading)) {
+            double currentHeading = follower.getPose().getHeading() + Math.toRadians(180);
+            double headingError = lastKnownHeading - currentHeading;
+            
+            // Wrap error
+            while (headingError > Math.PI)  headingError -= 2 * Math.PI;
+            while (headingError < -Math.PI) headingError += 2 * Math.PI;
+            
+            double dt = pidTimer.seconds();
+            pidTimer.reset();
+            if (dt > 0.5) { odometryHeadingPID.reset(); dt = 0.01; }
+
+            double output = odometryHeadingPID.update(headingError, dt);
+            return Math.max(-1.0, Math.min(1.0, output));
+        }
+
+        return 0; // No target, no memory
+    }
+
     public double facePoint(double targetX, double targetY) {
         Pose currentPose = follower.getPose();
 
@@ -109,7 +123,6 @@ public class Drivetrain {
         double targetHeading = Math.atan2(dy, dx);
         double currentHeading = currentPose.getHeading() + Math.toRadians(180);
 
-        // Wrap error to [-π, π]
         double headingError = targetHeading - currentHeading;
         while (headingError > Math.PI)  headingError -= 2 * Math.PI;
         while (headingError < -Math.PI) headingError += 2 * Math.PI;
@@ -117,13 +130,12 @@ public class Drivetrain {
         double dt = pidTimer.seconds();
         pidTimer.reset();
 
-        if (dt > 0.5) { // Reset if the loop was paused or just started
+        if (dt > 0.5) {
             headingPID.reset();
-            dt = 0.01; // Avoid division by zero or huge jump
+            dt = 0.01;
         }
 
         double output = headingPID.update(headingError, dt);
         return Math.max(-1.0, Math.min(1.0, output));
     }
-
 }

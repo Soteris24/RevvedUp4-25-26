@@ -41,8 +41,8 @@ public class ArtifactSystem {
     private int motifProgress = 0;
 
     public double rpm = SHORT_RPM;
-    public static final double SHORT_RPM = 1820;
-    public static final double LONG_RPM = 2250;
+    public static final double SHORT_RPM = 1950;
+    public static final double LONG_RPM = 2340;
     public double currentDistance = 48;
 
     private static final double[] DISTANCE_TABLE = {24, 48, 72, 96};

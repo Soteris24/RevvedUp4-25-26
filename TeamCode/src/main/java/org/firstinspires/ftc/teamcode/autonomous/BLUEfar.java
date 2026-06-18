@@ -15,7 +15,7 @@ public class BLUEfar extends BaseAutonomous1 {
 
     @Override
     protected Pose getShootingPose() {
-        return new Pose(4, 1, Math.toRadians(28));
+        return new Pose(4, 1, Math.toRadians(26));
     }
 
     @Override
@@ -25,7 +25,7 @@ public class BLUEfar extends BaseAutonomous1 {
 
     @Override
     protected Pose getPos1Forward() {
-        return new Pose(26, 35, Math.toRadians(90));
+        return new Pose(26, 50, Math.toRadians(90));
     }
 
     @Override
@@ -40,11 +40,11 @@ public class BLUEfar extends BaseAutonomous1 {
 
     @Override
     protected Pose getHumanPlayer() {
-        return new Pose(26, 35, Math.toRadians(90));
+        return new Pose(20, 35, Math.toRadians(90));
     }
 
     @Override
     protected Pose getHumanPlayer2() {
-        return new Pose(26, 35, Math.toRadians(180));
+        return new Pose(0, 60, Math.toRadians(135));
     }
 }

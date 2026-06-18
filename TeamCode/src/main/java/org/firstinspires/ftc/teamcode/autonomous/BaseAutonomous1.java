@@ -108,7 +108,7 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
                 case GO_TO_SHOOTING_POS: runGoToShootingPos(); break;
                 case GO_TO_COLLECTION:   runGoToCollection();  break;
                 case COLLECT_BALLS:      runCollectBalls();    break;
-                case RETURN_TO_SHOOT:    runReturnToShoot();   break;
+                case RETURN_TO_SHOOT:    runReturnToShoot(currentTime);   break;
                 case RETURN_HOME:        runReturnHome();      break;
                 case COMPLETE:           runComplete(); return;
             }
@@ -145,7 +145,7 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
             case "constant":
                 path = follower.pathBuilder()
                         .addPath(new BezierLine(currentPose, targetPose))
-                        .setConstantHeadingInterpolation(currentPose.getHeading())
+                        .setConstantHeadingInterpolation(targetPose.getHeading())
                         .build();
                 break;
             case "tangent":
@@ -266,15 +266,23 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
         }
     }
 
-    private void runReturnToShoot() {
+    private void runReturnToShoot(double currentTime) {
         if (!stateStarted) {
             stateStarted = true;
-            follower.setMaxPower(0.8);
-            goToPose(shootingPose, "linear");
+            follower.setMaxPower(1);
+            goToPose(shootingPose, "constant");
+        }
+
+        if (stateTimer.seconds() < 1.0) {
+            intake.intakeOn = true;
+        } else if (stateTimer.seconds() < 1.8) {
+            artifactSystem.setIntakeReverse(true, currentTime);
+        } else {
+            intake.stop();
             artifactSystem.switchToShooting(ArtifactSystem.LONG_RPM, false);
         }
 
-        if (hasReachedTarget()) {
+        if (hasReachedTarget() && stateTimer.seconds() > 0) {
             transitionToState(AutoState.GO_TO_SHOOTING_POS);
         }
 

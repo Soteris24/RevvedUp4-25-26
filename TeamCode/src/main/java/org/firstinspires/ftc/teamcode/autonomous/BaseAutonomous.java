@@ -21,9 +21,18 @@ public abstract class BaseAutonomous extends LinearOpMode {
     protected abstract Pose getPos1();
     protected abstract Pose getPos1Forward();
     protected abstract Pose getPos2();
+    protected abstract Pose getPos2Forward();
+    protected abstract Pose getPos3();
+    protected abstract Pose getPos3Forward();
     protected abstract Pose getPosgate();
     protected abstract Pose getPosgateready();
-    protected abstract Pose getPos2Forward();
+    protected abstract Mode getMode();
+
+    public enum Mode {
+        NINE_NO_GATE,
+        NINE_WITH_GATE,
+        TWELVE_NO_GATE
+    }
     RobotHardware hw;
     Drivetrain drivetrain;
     Sorter sorter;
@@ -40,9 +49,11 @@ public abstract class BaseAutonomous extends LinearOpMode {
     private Pose pos1;
     private Pose pos1Forward;
     private Pose pos2;
+    private Pose pos2Forward;
+    private Pose pos3;
+    private Pose pos3Forward;
     private Pose posgate;
     private Pose posgateready;
-    private Pose pos2Forward;
 
     private boolean isMoving = false;
     private PathChain currentPath = null;
@@ -59,7 +70,7 @@ public abstract class BaseAutonomous extends LinearOpMode {
     private ElapsedTime intakeSlowTimer = new ElapsedTime();
 
     enum AutoState {
-        INIT, GO_TO_SHOOTING_POS, GO_TO_COLLECTION,
+        INIT, GO_TO_SHOOTING_POS, ALIGN_LIMELIGHT, GO_TO_COLLECTION,
         COLLECT_BALLS, RETURN_TO_SHOOT, OPEN_GATE, RETURN_HOME, COMPLETE
     }
 
@@ -72,13 +83,16 @@ public abstract class BaseAutonomous extends LinearOpMode {
         pos1         = getPos1();
         pos1Forward  = getPos1Forward();
         pos2         = getPos2();
+        pos2Forward  = getPos2Forward();
+        pos3         = getPos3();
+        pos3Forward  = getPos3Forward();
         posgate      = getPosgate();
         posgateready = getPosgateready();
-        pos2Forward  = getPos2Forward();
 
         initializeRobot();
 
         telemetry.addData("Status", "Ready");
+        telemetry.addData("Mode", getMode());
         telemetry.addData("Artifacts preloaded", artifactSystem.artifactCount);
         telemetry.update();
 
@@ -107,6 +121,7 @@ public abstract class BaseAutonomous extends LinearOpMode {
 
             switch (currentState) {
                 case GO_TO_SHOOTING_POS: runGoToShootingPos(); break;
+                case ALIGN_LIMELIGHT:    runAlignLimelight(); break;
                 case GO_TO_COLLECTION:   runGoToCollection();  break;
                 case COLLECT_BALLS:      runCollectBalls();    break;
                 case RETURN_TO_SHOOT:    runReturnToShoot(currentTime);   break;
@@ -195,25 +210,40 @@ public abstract class BaseAutonomous extends LinearOpMode {
             artifactSystem.switchToShooting(ArtifactSystem.SHORT_RPM, false);
         }
 
-        boolean arrived = hasReachedTarget();
-
-        if (arrived) {
-            artifactSystem.triggerAutoFire();
-            secondshoot = true;
-        }
-
-
-
-        if (arrived && !artifactSystem.isActivelyShooting() && artifactSystem.artifactCount == 0) {
-            if      (currentCycle == 0) { currentCycle = 1; transitionToState(AutoState.GO_TO_COLLECTION); }
-            else if (currentCycle == 1) { currentCycle = 2; transitionToState(AutoState.GO_TO_COLLECTION); }
-            else                        { transitionToState(AutoState.RETURN_HOME); }
-            artifactSystem.switchToIntake();
+        if (hasReachedTarget()) {
+            transitionToState(AutoState.ALIGN_LIMELIGHT);
         }
 
         if (stateTimer.seconds() > 20.0) {
             isMoving = false;
-            transitionToState(currentCycle < 2 ? AutoState.GO_TO_COLLECTION : AutoState.RETURN_HOME);
+            transitionToState(AutoState.ALIGN_LIMELIGHT);
+        }
+    }
+
+    private void runAlignLimelight() {
+        if (!stateStarted) {
+            stateStarted = true;
+            follower.breakFollowing();
+        }
+
+        double rotation = drivetrain.faceLimelightTarget();
+        drivetrain.drive(0, 0, rotation);
+
+        if (Math.abs(rotation) < 0.05 || stateTimer.seconds() > 1.0) {
+            artifactSystem.triggerAutoFire();
+            secondshoot = true;
+            
+            // Check if done shooting
+            if (!artifactSystem.isActivelyShooting() && artifactSystem.artifactCount == 0) {
+                int maxCycles = (getMode() == Mode.TWELVE_NO_GATE) ? 3 : 2;
+                if (currentCycle < maxCycles) {
+                    currentCycle++;
+                    transitionToState(AutoState.GO_TO_COLLECTION);
+                } else {
+                    transitionToState(AutoState.RETURN_HOME);
+                }
+                artifactSystem.switchToIntake();
+            }
         }
     }
 
@@ -222,6 +252,7 @@ public abstract class BaseAutonomous extends LinearOpMode {
             stateStarted = true;
             if      (currentCycle == 1) goToPose(pos1, "constant");
             else if (currentCycle == 2) goToPose(pos2, "constant");
+            else if (currentCycle == 3) goToPose(pos3, "constant");
         }
 
         if (hasReachedTarget()) {
@@ -244,10 +275,11 @@ public abstract class BaseAutonomous extends LinearOpMode {
             follower.setMaxPower(0.6);
             if      (currentCycle == 1) goToPose(pos1Forward, "linear");
             else if (currentCycle == 2) goToPose(pos2Forward, "linear");
+            else if (currentCycle == 3) goToPose(pos3Forward, "linear");
         }
 
         // 1. Detect 2 balls and pause
-        if (!intakeSlowActive && artifactSystem.artifactCount >= 2) {
+        if (!intakeSlowActive && artifactSystem.artifactCount >= 1) {
             intakeSlowActive = true;
             follower.setMaxPower(0);
             intakeSlowTimer.reset();
@@ -259,6 +291,7 @@ public abstract class BaseAutonomous extends LinearOpMode {
             follower.setMaxPower(0.8);
             if      (currentCycle == 1) goToPose(pos1Forward, "linear");
             else if (currentCycle == 2) goToPose(pos2Forward, "linear");
+            else if (currentCycle == 3) goToPose(pos3Forward, "linear");
         }
 
         // 3. Exit condition (3 balls, target reached, or timeout)
@@ -266,7 +299,7 @@ public abstract class BaseAutonomous extends LinearOpMode {
                 || (hasResumed && intakeSlowTimer.seconds() > 0.2 && hasReachedTarget())
                 || stateTimer.seconds() > 5) {
 
-            if (currentCycle == 2) {
+            if (currentCycle == 2 && getMode() == Mode.NINE_WITH_GATE) {
                 transitionToState(AutoState.OPEN_GATE);
             } else {
                 transitionToState(AutoState.RETURN_TO_SHOOT);
@@ -324,7 +357,7 @@ public abstract class BaseAutonomous extends LinearOpMode {
             stateStarted = true;
             artifactSystem.switchToIntake();
             follower.setMaxPower(1.0);
-            goToPose(pos2, "constant");
+            goToPose(posgateready, "constant");
         }
 
         if (hasReachedTarget()) {
