@@ -22,8 +22,8 @@ import org.firstinspires.ftc.teamcode.utils.LatchedEdgeButton;
 
 import java.util.List;
 @Configurable
-@TeleOp(name = "DriverOp")
-public class DriverOp extends LinearOpMode {
+@TeleOp(name = "DriverOp - RED", group = "DriverOp")
+public class DriverOpRed extends LinearOpMode {
 
     RobotHardware     hw;
     Follower         follower;
@@ -59,7 +59,7 @@ public class DriverOp extends LinearOpMode {
     @Override
     public void runOpMode() {
         hw = new RobotHardware();
-        hw.init(hardwareMap);
+        hw.init(hardwareMap,8);
 
         follower = Constants.createFollower(hardwareMap);
 

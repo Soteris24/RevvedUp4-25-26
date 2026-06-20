@@ -19,7 +19,7 @@ public class colorSensorTest extends LinearOpMode {
     public void runOpMode()  {
 
         hw = new RobotHardware();
-        hw.init(hardwareMap);
+        hw.init(hardwareMap,0);
 
         sorter = new Sorter(hw, false);
         //artifactSorter = new ArtifactSorter(hw, telemetry,  sorter, true);

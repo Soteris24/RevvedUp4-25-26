@@ -34,7 +34,7 @@ public class ManualOp extends LinearOpMode {
     public void runOpMode()  {
         this.sorter1 = new Sorterold();
         this.robotHardware = new RobotHardware();
-        this.robotHardware.init(hardwareMap);
+        this.robotHardware.init(hardwareMap,0);
         this.shooter = new Shooter2(robotHardware, false);
         this.intake = new Intake(robotHardware, false);
 

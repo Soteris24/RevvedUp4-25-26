@@ -34,7 +34,7 @@ public class Sorterold extends LinearOpMode {
 
     @Override
     public void runOpMode()  {
-        r.init(hardwareMap);
+        r.init(hardwareMap,0);
         r.sorter.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         waitForStart();

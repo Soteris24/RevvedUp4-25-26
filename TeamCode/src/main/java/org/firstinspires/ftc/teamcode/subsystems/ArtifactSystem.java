@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
 import com.bylazar.telemetry.PanelsTelemetry;
+import com.qualcomm.hardware.limelightvision.LLResult;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
@@ -8,6 +9,8 @@ import org.firstinspires.ftc.teamcode.RobotHardware;
 
 import java.util.Arrays;
 import java.util.Objects;
+
+import kotlin.Unit;
 
 public class ArtifactSystem {
 
@@ -45,8 +48,13 @@ public class ArtifactSystem {
     public static final double LONG_RPM = 2340;
     public double currentDistance = 48;
 
-    private static final double[] DISTANCE_TABLE = {24, 48, 72, 96};
-    private static final double[] RPM_TABLE = {1800, 1900, 2000, 2200};
+    // --- Limelight Distance Constants (Tune these!) ---
+    private static final double TARGET_HEIGHT = 74; // Height of goal center
+    private static final double CAMERA_HEIGHT = 38.5;  // Height of Limelight lens
+    private static final double MOUNT_ANGLE = 12.0;   // Degrees tilted up from horizontal
+
+    private static final double[] DISTANCE_TABLE = {75, 165, 200, 300};
+    private static final double[] RPM_TABLE = {1900, 1950, 2030, 2345};
 
     private String pendingShootColor = null;
     private boolean transferInProgress = false;
@@ -58,6 +66,13 @@ public class ArtifactSystem {
     private double rotateStartTime = 0;
     private static final double INTAKE_SETTLE_SEC = 0.1;
     private static final double ROTATE_GUARD_SEC = 0.05;
+
+    // --- Color Sampling Fields ---
+    private boolean isSampling = false;
+    private long samplingStartTime = 0;
+    private long sumG = 0, sumB = 0, sumR = 0;
+    private int sampleCount = 0;
+    private static final long SAMPLING_DURATION_MS = 100;
 
     private boolean manualTransferActive = false;
     private double manualTransferStart = 0;
@@ -103,6 +118,14 @@ public class ArtifactSystem {
             panelsTel.getTelemetry().addData("TargetSlot", targetSlot);
             panelsTel.getTelemetry().addData("RPM", rpm);
             panelsTel.getTelemetry().addData("ManualTransferActive", manualTransferActive);
+
+            telemetry.addData("Artifacts", Arrays.toString(storedArtifacts));
+            telemetry.addData("CurrentSlot", currentSlot);
+            telemetry.addData("TargetSlot", targetSlot);
+            telemetry.addData("Red", hw.colorSensor.red());
+            telemetry.addData("Green", hw.colorSensor.green());
+            telemetry.addData("Blue", hw.colorSensor.blue());
+            telemetry.addData("Distance", hw.colorSensor.getDistance(DistanceUnit.MM));
         }
     }
 
@@ -264,6 +287,7 @@ public class ArtifactSystem {
                 if (currentTime - intakeRotateStartTime >= INTAKE_SETTLE_SEC) {
                     if (artifactCount < storedArtifacts.length) {
                         sorter.moveDegrees(RobotHardware.DEG_PER_SLOT);
+                        currentSlot = (currentSlot + 1) % storedArtifacts.length;
                         intakeSubState = IntakeSubState.RETURN;
                     } else {
                         intakeSubState = IntakeSubState.FULL;
@@ -296,6 +320,14 @@ public class ArtifactSystem {
 
     private void updateShooting(double currentTime) {
         if (dynamicShoot) {
+            LLResult result = hw.limelight.getLatestResult();
+            if (result != null && result.isValid()) {
+                double ty = result.getTy();
+                double angleToTarget = Math.toRadians(MOUNT_ANGLE + ty);
+                if (Math.abs(angleToTarget) > 1e-6) {
+                    currentDistance = (TARGET_HEIGHT - CAMERA_HEIGHT) / Math.tan(angleToTarget);
+                }
+            }
             rpm = getRPMForDistance(currentDistance);
         }
         shooter.setTargetVelRPM(rpm);
@@ -511,15 +543,41 @@ public class ArtifactSystem {
 
     private void detect() {
         double distance = hw.colorSensor.getDistance(DistanceUnit.MM);
-        boolean detectedNow = distance < 85 && distance > 30;
+        boolean detectedNow = distance < 75 && distance > 20;
         long now = System.currentTimeMillis();
 
-        if (!artifactPresent && detectedNow && !lastDetected && now - lastDetectionTime > 300) {
-            lastDetectionTime = now;
-            if (artifactCount < storedArtifacts.length) {
-                String color = hw.colorSensor.green() > hw.colorSensor.blue() ? "G" : "P";
-                if (storeArtifact(color)) {
-                    artifactPresent = true;
+        // 1. Start sampling when a ball first enters range
+        if (detectedNow && !isSampling && !artifactPresent && now - lastDetectionTime > 400) {
+            isSampling = true;
+            samplingStartTime = now;
+            sumG = 0; sumB = 0; sumR = 0;
+            sampleCount = 0;
+        }
+
+        // 2. Accumulate samples over the duration
+        if (isSampling) {
+            sumG += hw.colorSensor.green();
+            sumB += hw.colorSensor.blue();
+            sumR += hw.colorSensor.red();
+            sampleCount++;
+
+            // 3. Once the window expires, make a final decision
+            if (now - samplingStartTime > SAMPLING_DURATION_MS) {
+                isSampling = false;
+                lastDetectionTime = now;
+
+                if (artifactCount < storedArtifacts.length && sampleCount > 0) {
+                    double avgG = (double) sumG / sampleCount;
+                    double avgB = (double) sumB / sampleCount;
+                    double avgR = (double) sumR / sampleCount;
+
+                    // Robust Logic: Green pieces must have Green as the clear dominant channel.
+                    // Purple pieces (Red + Blue) will have high Red and Blue, but lower Green.
+                    String color = (avgG > avgR * 1.2 && avgG > avgB) ? "G" : "P";
+
+                    if (storeArtifact(color)) {
+                        artifactPresent = true;
+                    }
                 }
             }
         }

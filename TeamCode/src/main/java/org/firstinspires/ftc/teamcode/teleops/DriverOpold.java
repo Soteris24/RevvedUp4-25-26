@@ -69,7 +69,7 @@ public class DriverOpold extends LinearOpMode {
     @Override
     public void runOpMode() {
         hw = new RobotHardware();
-        hw.init(hardwareMap);
+        hw.init(hardwareMap,0);
 
         follower   = Constants.createFollower(hardwareMap);
         drivetrain = new Drivetrain(hw, follower, false);

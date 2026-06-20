@@ -19,7 +19,7 @@ public class Drivetrain {
     public PIDController headingPID;
     public PIDController odometryHeadingPID;
     private ElapsedTime pidTimer = new ElapsedTime();
-    public static PIDCoefficients headingCoeffs = new PIDCoefficients(1.5, 0.3, 0);
+    public static PIDCoefficients headingCoeffs = new PIDCoefficients(2, 0, 0.21);
     public static PIDCoefficients odometryCoeffs = new PIDCoefficients(0.2, 0, 0.0);
 
     public Drivetrain(RobotHardware hw, Follower follower, boolean telemetryOn) {

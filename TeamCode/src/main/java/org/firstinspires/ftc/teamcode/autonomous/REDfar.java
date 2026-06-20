@@ -40,11 +40,14 @@ public class REDfar extends BaseAutonomous1 {
 
     @Override
     protected Pose getHumanPlayer() {
-        return new Pose(10, -50, Math.toRadians(-90));
+        return new Pose(5, -50, Math.toRadians(-90));
     }
 
     @Override
     protected Pose getHumanPlayer2() {
-        return new Pose(35, -55, Math.toRadians(0));
+        return new Pose(45, -55, Math.toRadians(-10));
     }
+
+    @Override
+    protected int getPipeline() {return 8;}
 }

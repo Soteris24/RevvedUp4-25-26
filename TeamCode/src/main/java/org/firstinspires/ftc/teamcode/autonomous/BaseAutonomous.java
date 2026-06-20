@@ -27,6 +27,7 @@ public abstract class BaseAutonomous extends LinearOpMode {
     protected abstract Pose getPosgate();
     protected abstract Pose getPosgateready();
     protected abstract Mode getMode();
+    protected abstract int getPipeline();
 
     public enum Mode {
         NINE_NO_GATE,
@@ -54,6 +55,7 @@ public abstract class BaseAutonomous extends LinearOpMode {
     private Pose pos3Forward;
     private Pose posgate;
     private Pose posgateready;
+    private int pipeline;
 
     private boolean isMoving = false;
     private PathChain currentPath = null;
@@ -88,6 +90,7 @@ public abstract class BaseAutonomous extends LinearOpMode {
         pos3Forward  = getPos3Forward();
         posgate      = getPosgate();
         posgateready = getPosgateready();
+        pipeline     = getPipeline();
 
         initializeRobot();
 
@@ -137,7 +140,7 @@ public abstract class BaseAutonomous extends LinearOpMode {
 
     private void initializeRobot() {
         hw = new RobotHardware();
-        hw.init(hardwareMap);
+        hw.init(hardwareMap,pipeline);
 
         follower = Constants.createFollower(hardwareMap);
         follower.setStartingPose(startPose);
@@ -207,7 +210,7 @@ public abstract class BaseAutonomous extends LinearOpMode {
             follower.setMaxPower(1);
             intake.stop();
             goToPose(shootingPose, "constant");
-            artifactSystem.switchToShooting(ArtifactSystem.SHORT_RPM, false);
+            artifactSystem.switchToShooting(ArtifactSystem.SHORT_RPM, true);
         }
 
         if (hasReachedTarget()) {

@@ -25,8 +25,8 @@ public class RobotHardware {
     public Limelight3A limelight;
     public ColorRangeSensor colorSensor, colorSensor2;
     public DistanceSensor distanceSensor;
-    public static double transferIdle = 0.99;
-    public static double transferPush = 0.65;
+    public static double transferIdle = 0.02;
+    public static double transferPush = 0.35;
     public static double DEG_PER_SLOT = 120;
     public int sorterTarget = 0;
 
@@ -43,7 +43,7 @@ public class RobotHardware {
 
     PanelsTelemetry panelsTelemetry = PanelsTelemetry.INSTANCE;
 
-    public void init(HardwareMap hwMap) {
+    public void init(HardwareMap hwMap, int pipeline) {
 
         this.hardwareMap = hwMap;
 
@@ -77,15 +77,19 @@ public class RobotHardware {
 
         this.limelight = hwMap.get(Limelight3A.class, "limelight");
         this.limelight.setPollRateHz(100);
-        this.limelight.pipelineSwitch(9);
-        this.limelight.start();
+
+        this.limelight.pipelineSwitch(pipeline);
+
+        if (pipeline != 0) {
+            this.limelight.start();
+        }
 
         this.leftShooter.setDirection(DcMotorSimple.Direction.REVERSE);
         this.rightShooter.setDirection(DcMotorSimple.Direction.FORWARD);
 
         this.colorSensor = hwMap.get(ColorRangeSensor.class, "colorSensor");
-        this.colorSensor2 = hwMap.get(ColorRangeSensor.class, "colorSensor2");
-        this.distanceSensor = hwMap.get(DistanceSensor.class, "distanceSensor");
+//        this.colorSensor2 = hwMap.get(ColorRangeSensor.class, "colorSensor2");
+//        this.distanceSensor = hwMap.get(DistanceSensor.class, "distanceSensor");
 
         this.sorter.setDirection(DcMotorSimple.Direction.REVERSE);
         this.sorter.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);

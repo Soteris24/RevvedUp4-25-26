@@ -16,7 +16,7 @@ public class drivetrainTest extends LinearOpMode {
     public void runOpMode()  {
 
         hw = new RobotHardware();
-        hw.init(hardwareMap);
+        hw.init(hardwareMap,0);
         hw.leftFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         hw.rightFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         hw.intake.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);

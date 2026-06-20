@@ -24,6 +24,7 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
     protected abstract Pose getPos2Forward();
     protected abstract Pose getHumanPlayer();
     protected abstract Pose getHumanPlayer2();
+    protected abstract int getPipeline();
     RobotHardware hw;
     Drivetrain drivetrain;
     Sorter sorter;
@@ -44,6 +45,8 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
     private Pose humanPlayer;
     private Pose humanPlayer2;
 
+    private int pipeline;
+
     private boolean isMoving = false;
     private PathChain currentPath = null;
 
@@ -58,7 +61,7 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
     private ElapsedTime intakeSlowTimer = new ElapsedTime();
 
     enum AutoState {
-        INIT, GO_TO_SHOOTING_POS, GO_TO_COLLECTION, COLLECT_FROM_GATE,
+        INIT, GO_TO_SHOOTING_POS, ALIGN_LIMELIGHT, GO_TO_COLLECTION, COLLECT_FROM_GATE,
         COLLECT_BALLS, RETURN_TO_SHOOT, RETURN_HOME, COMPLETE
     }
 
@@ -74,6 +77,7 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
         pos2Forward  = getPos2Forward();
         humanPlayer  = getHumanPlayer();
         humanPlayer2  = getHumanPlayer2();
+        pipeline     = getPipeline();
 
         initializeRobot();
 
@@ -106,6 +110,7 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
             lastArtifactCount = artifactSystem.artifactCount;
             switch (currentState) {
                 case GO_TO_SHOOTING_POS: runGoToShootingPos(); break;
+                case ALIGN_LIMELIGHT:    runAlignLimelight(); break;
                 case GO_TO_COLLECTION:   runGoToCollection();  break;
                 case COLLECT_BALLS:      runCollectBalls();    break;
                 case RETURN_TO_SHOOT:    runReturnToShoot(currentTime);   break;
@@ -120,7 +125,7 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
 
     private void initializeRobot() {
         hw = new RobotHardware();
-        hw.init(hardwareMap);
+        hw.init(hardwareMap, pipeline);
 
         follower = Constants.createFollower(hardwareMap);
         follower.setStartingPose(startPose);
@@ -191,24 +196,40 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
             artifactSystem.seedArtifacts("G", "P", "P");
             intake.stop();
             goToPose(shootingPose, "linear");
-            artifactSystem.switchToShooting(ArtifactSystem.LONG_RPM, false);
+            artifactSystem.switchToShooting(ArtifactSystem.LONG_RPM, true);
         }
 
         boolean arrived = hasReachedTarget();
 
         if (arrived) {
-            artifactSystem.triggerAutoFire();
-        }
-
-        if (arrived && !artifactSystem.isActivelyShooting() && artifactSystem.artifactCount == 0) {
-            if      (currentCycle == 0) { currentCycle = 1; transitionToState(AutoState.GO_TO_COLLECTION); }
-            else if (currentCycle == 1) { currentCycle = 2; transitionToState(AutoState.GO_TO_COLLECTION); }
-            else                        { transitionToState(AutoState.RETURN_HOME); }
+            transitionToState(AutoState.ALIGN_LIMELIGHT);
         }
 
         if (stateTimer.seconds() > 20.0) {
             isMoving = false;
-            transitionToState(currentCycle < 2 ? AutoState.GO_TO_COLLECTION : AutoState.RETURN_HOME);
+            transitionToState(AutoState.ALIGN_LIMELIGHT);
+        }
+    }
+
+    private void runAlignLimelight() {
+        if (!stateStarted) {
+            stateStarted = true;
+            follower.breakFollowing();
+        }
+
+        double rotation = drivetrain.faceLimelightTarget();
+        drivetrain.drive(0, 0, rotation);
+
+        if (Math.abs(rotation) < 0.05 || stateTimer.seconds() > 1.0) {
+            artifactSystem.triggerAutoFire();
+
+            // Check if done shooting
+            if (!artifactSystem.isActivelyShooting() && artifactSystem.artifactCount == 0) {
+                if      (currentCycle == 0) { currentCycle = 1; transitionToState(AutoState.GO_TO_COLLECTION); }
+                else if (currentCycle == 1) { currentCycle = 2; transitionToState(AutoState.GO_TO_COLLECTION); }
+                else                        { transitionToState(AutoState.RETURN_HOME); }
+                artifactSystem.switchToIntake();
+            }
         }
     }
 
@@ -244,7 +265,7 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
         }
 
         // 1. Detect 2 balls and pause
-        if (!intakeSlowActive && artifactSystem.artifactCount >= 2) {
+        if (!intakeSlowActive && artifactSystem.artifactCount >= 1) {
             intakeSlowActive = true;
             follower.setMaxPower(0);
             intakeSlowTimer.reset();
@@ -329,18 +350,18 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
     }
 
     private void updateTelemetry() {
-        telemetry.addData("State",       currentState);
-        telemetry.addData("Cycle",       currentCycle + " (0=Init, 1=Pos1, 2=Pos2)");
-        telemetry.addData("Runtime",     "%.1f s", runtime.seconds());
-        telemetry.addData("State Time",  "%.1f s", stateTimer.seconds());
-        telemetry.addData("X",           "%.1f in", follower.getPose().getX());
-        telemetry.addData("Y",           "%.1f in", follower.getPose().getY());
-        telemetry.addData("Heading",     "%.1f°", Math.toDegrees(follower.getPose().getHeading()));
-        telemetry.addData("Path Busy",   follower.isBusy());
-        telemetry.addData("Artifacts",   artifactSystem.artifactCount);
-        telemetry.addData("Robot State", artifactSystem.robotState);
-        telemetry.addData("Shoot State", artifactSystem.shootSubState);
-        telemetry.addData("Shooter RPM", shooter.currentVelocity());
-        telemetry.update();
+//        telemetry.addData("State",       currentState);
+//        telemetry.addData("Cycle",       currentCycle + " (0=Init, 1=Pos1, 2=Pos2)");
+//        telemetry.addData("Runtime",     "%.1f s", runtime.seconds());
+//        telemetry.addData("State Time",  "%.1f s", stateTimer.seconds());
+//        telemetry.addData("X",           "%.1f in", follower.getPose().getX());
+//        telemetry.addData("Y",           "%.1f in", follower.getPose().getY());
+//        telemetry.addData("Heading",     "%.1f°", Math.toDegrees(follower.getPose().getHeading()));
+//        telemetry.addData("Path Busy",   follower.isBusy());
+//        telemetry.addData("Artifacts",   artifactSystem.artifactCount);
+//        telemetry.addData("Robot State", artifactSystem.robotState);
+//        telemetry.addData("Shoot State", artifactSystem.shootSubState);
+//        telemetry.addData("Shooter RPM", shooter.currentVelocity());
+//        telemetry.update();
     }
 }

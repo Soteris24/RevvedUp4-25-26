@@ -28,7 +28,7 @@ public class SemiAutomated extends LinearOpMode {
     @Override
     public void runOpMode() {
         hw = new RobotHardware();
-        hw.init(hardwareMap);
+        hw.init(hardwareMap,0);
         drive = new Drivetrain(hw, follower, true);
         intake = new Intake(hw, false);
         sh = new Shooter2(hw, false);
