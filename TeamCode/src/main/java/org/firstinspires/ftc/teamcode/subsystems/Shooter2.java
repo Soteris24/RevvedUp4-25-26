@@ -52,7 +52,7 @@ public class Shooter2 {
     }
     public boolean atTargetVel(){
         double error = targetVelRPM - currentVelocity();
-        boolean withinThreshold = Math.abs(error) < 300;
+        boolean withinThreshold = Math.abs(error) < 250;
 
         long now = System.currentTimeMillis();
         if (withinThreshold) {
@@ -96,10 +96,10 @@ public class Shooter2 {
     }
 
     public void updateTelemetry(){
-//        panelsTelemetry.getTelemetry().addData("left shooter", Convertor.shooterTPStoRPM(hw.leftShooter.getVelocity(AngleUnit.DEGREES)));
-//        panelsTelemetry.getTelemetry().addData("right shooter", Convertor.shooterTPStoRPM(hw.rightShooter.getVelocity(AngleUnit.DEGREES)));
-//        panelsTelemetry.getTelemetry().addData("shooter target", targetVelRPM);
-//        panelsTelemetry.getTelemetry().addData("shooter vel", currentVelocity());
-//        panelsTelemetry.getTelemetry().update();
+        panelsTelemetry.getTelemetry().addData("left shooter", Convertor.shooterTPStoRPM(hw.leftShooter.getVelocity(AngleUnit.DEGREES)));
+        panelsTelemetry.getTelemetry().addData("right shooter", Convertor.shooterTPStoRPM(hw.rightShooter.getVelocity(AngleUnit.DEGREES)));
+        panelsTelemetry.getTelemetry().addData("shooter target", targetVelRPM);
+        panelsTelemetry.getTelemetry().addData("shooter vel", currentVelocity());
+        panelsTelemetry.getTelemetry().update();
     }
 }

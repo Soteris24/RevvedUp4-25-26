@@ -19,6 +19,11 @@ public class REDfar extends BaseAutonomous1 {
     }
 
     @Override
+    protected Pose getMotifPose() {
+        return new Pose(6, -0.2, Math.toRadians(135));
+    }
+
+    @Override
     protected Pose getPos1() {
         return new Pose(26, -14, Math.toRadians(-90));
     }

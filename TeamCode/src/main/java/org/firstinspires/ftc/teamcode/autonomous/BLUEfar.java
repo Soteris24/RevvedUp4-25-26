@@ -19,6 +19,11 @@ public class BLUEfar extends BaseAutonomous1 {
     }
 
     @Override
+    protected Pose getMotifPose() {
+        return new Pose(4, 1, Math.toRadians(135));
+    }
+
+    @Override
     protected Pose getPos1() {
         return new Pose(28, 10, Math.toRadians(90));
     }

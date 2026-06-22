@@ -43,6 +43,7 @@ public class DriverOpBlue extends LinearOpMode {
 
     public static double edgeLatchSeconds = 0.12;
     private boolean slowDrivetrain = false;
+    private int currentPipeline = 9;
 
     LatchedEdgeButton yButton = new LatchedEdgeButton(edgeLatchSeconds);
     LatchedEdgeButton xButton = new LatchedEdgeButton(edgeLatchSeconds);
@@ -77,6 +78,7 @@ public class DriverOpBlue extends LinearOpMode {
         }
 
         waitForStart();
+        sorter.moveDegrees(55);
         loopTimer.reset();
 
         while (opModeIsActive()) {
@@ -89,6 +91,20 @@ public class DriverOpBlue extends LinearOpMode {
             shooter.setPIDFCoefficients();
             telemetry.addData("Loop ms", loopTimer.milliseconds());
             loopTimer.reset();
+
+            if (gamepad1.x) {
+                artifactSystem.updateMotifFromAprilTag();
+                if (currentPipeline != 1) {
+                    currentPipeline = 1;
+                    hw.limelight.pipelineSwitch(currentPipeline);
+
+                }
+            } else {
+                if (currentPipeline != 9) {
+                    currentPipeline = 9;
+                    hw.limelight.pipelineSwitch(currentPipeline);
+                }
+            }
 
             // --- Drivetrain (gamepad1) ---
             double y  = -gamepad1.left_stick_y;
@@ -191,9 +207,6 @@ public class DriverOpBlue extends LinearOpMode {
                 if (rbEdge) {
                     artifactSystem.triggerColorShot("P");
                 }
-            }
-            if (!artifactSystem.motifSeen) {
-                artifactSystem.updateMotifFromAprilTag();
             }
 
             artifactSystem.update(currentTime);

@@ -18,6 +18,7 @@ import org.firstinspires.ftc.teamcode.subsystems.Sorter;
 public abstract class BaseAutonomous extends LinearOpMode {
     protected abstract Pose getStartPose();
     protected abstract Pose getShootingPose();
+    protected abstract Pose getMotifPose();
     protected abstract Pose getPos1();
     protected abstract Pose getPos1Forward();
     protected abstract Pose getPos2();
@@ -47,6 +48,7 @@ public abstract class BaseAutonomous extends LinearOpMode {
 
     private Pose startPose;
     private Pose shootingPose;
+    private Pose motifPose;
     private Pose pos1;
     private Pose pos1Forward;
     private Pose pos2;
@@ -72,7 +74,7 @@ public abstract class BaseAutonomous extends LinearOpMode {
     private ElapsedTime intakeSlowTimer = new ElapsedTime();
 
     enum AutoState {
-        INIT, GO_TO_SHOOTING_POS, ALIGN_LIMELIGHT, GO_TO_COLLECTION,
+        INIT, GO_TO_SHOOTING_POS, FACE_MOTIF, ALIGN_LIMELIGHT, GO_TO_COLLECTION,
         COLLECT_BALLS, RETURN_TO_SHOOT, OPEN_GATE, RETURN_HOME, COMPLETE
     }
 
@@ -82,6 +84,7 @@ public abstract class BaseAutonomous extends LinearOpMode {
     public void runOpMode() {
         startPose    = getStartPose();
         shootingPose = getShootingPose();
+        motifPose    = getMotifPose();
         pos1         = getPos1();
         pos1Forward  = getPos1Forward();
         pos2         = getPos2();
@@ -99,12 +102,18 @@ public abstract class BaseAutonomous extends LinearOpMode {
         telemetry.addData("Artifacts preloaded", artifactSystem.artifactCount);
         telemetry.update();
 
+        sorter.moveDegrees(55);
         waitForStart();
         if (!opModeIsActive()) return;
 
         runtime.reset();
         follower.setMaxPower(1);
-        transitionToState(AutoState.GO_TO_SHOOTING_POS);
+        if (getMode() == Mode.NINE_NO_GATE) {
+            transitionToState(AutoState.FACE_MOTIF);
+        } else {
+            transitionToState(AutoState.GO_TO_SHOOTING_POS);
+        }
+
         currentCycle = 0;
 
         while (opModeIsActive()) {
@@ -115,10 +124,10 @@ public abstract class BaseAutonomous extends LinearOpMode {
             shooter.setPIDFCoefficients();
             intake.intake(false,false,currentTime);
             artifactSystem.update(currentTime);
-
-            if (getMode() == Mode.NINE_NO_GATE && !artifactSystem.motifSeen) {
-                artifactSystem.updateMotifFromAprilTag();
-            }
+//
+//            if (getMode() == Mode.NINE_NO_GATE) {
+//                artifactSystem.updateMotifFromAprilTag();
+//            }
 
             if (runtime.seconds() > 29
                     && currentState != AutoState.RETURN_HOME
@@ -128,6 +137,7 @@ public abstract class BaseAutonomous extends LinearOpMode {
 
             switch (currentState) {
                 case GO_TO_SHOOTING_POS: runGoToShootingPos(); break;
+                case FACE_MOTIF:         runfaceMotif(); break;
                 case ALIGN_LIMELIGHT:    runAlignLimelight(); break;
                 case GO_TO_COLLECTION:   runGoToCollection();  break;
                 case COLLECT_BALLS:      runCollectBalls();    break;
@@ -224,6 +234,21 @@ public abstract class BaseAutonomous extends LinearOpMode {
         if (stateTimer.seconds() > 20.0) {
             isMoving = false;
             transitionToState(AutoState.ALIGN_LIMELIGHT);
+        }
+    }
+    private void runfaceMotif() {
+        if (!stateStarted) {
+            stateStarted = true;
+            hw.pipelineSwitch(1);
+            artifactSystem.motifSeen = false;
+            goToPose(motifPose, "constant");
+        }
+
+        artifactSystem.updateMotifFromAprilTag();
+
+        if ((artifactSystem.motifSeen || stateTimer.seconds() > 2.0)) {
+            hw.pipelineSwitch(pipeline);
+            transitionToState(AutoState.GO_TO_SHOOTING_POS);
         }
     }
 
@@ -367,6 +392,7 @@ public abstract class BaseAutonomous extends LinearOpMode {
         if (!stateStarted) {
             stateStarted = true;
             artifactSystem.switchToIntake();
+            sorter.moveDegrees(-55);
             follower.setMaxPower(1.0);
             goToPose(posgateready, "constant");
         }

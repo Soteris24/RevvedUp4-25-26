@@ -109,6 +109,10 @@ public class RobotHardware {
         this.sorterTransfer.setPosition(transferIdle);
 
     }
+    public void pipelineSwitch(int pipeline) {
+        limelight.pipelineSwitch(pipeline);
+    }
+
     public double getBatteryVoltage() {
         double voltage = 0;
         for (VoltageSensor sensor : hardwareMap.voltageSensor) {

@@ -56,8 +56,8 @@ public class ArtifactSystem {
     private static final double CAMERA_HEIGHT = 38.5;  // Height of Limelight lens
     private static final double MOUNT_ANGLE = 12.0;   // Degrees tilted up from horizontal
 
-    private static final double[] DISTANCE_TABLE = {75, 165, 200, 300};
-    private static final double[] RPM_TABLE = {1900, 1950, 2030, 2345};
+    private static final double[] DISTANCE_TABLE = {75, 165, 200, 320};
+    private static final double[] RPM_TABLE = {1900, 1955, 2040, 2450};
 
     private String pendingShootColor = null;
     private boolean transferInProgress = false;
@@ -65,7 +65,6 @@ public class ArtifactSystem {
     private boolean sorterMoved = false;
     private boolean autoFire = false;
     private boolean motifAutoFire = false;
-    public boolean motifSeen = false;
 
     private double intakeRotateStartTime = 0;
     private double rotateStartTime = 0;
@@ -125,12 +124,15 @@ public class ArtifactSystem {
             panelsTel.getTelemetry().addData("ManualTransferActive", manualTransferActive);
 
             telemetry.addData("Artifacts", Arrays.toString(storedArtifacts));
+            telemetry.addData("Motif",Arrays.toString(motif));
             telemetry.addData("CurrentSlot", currentSlot);
             telemetry.addData("TargetSlot", targetSlot);
             telemetry.addData("Red", hw.colorSensor.red());
             telemetry.addData("Green", hw.colorSensor.green());
             telemetry.addData("Blue", hw.colorSensor.blue());
             telemetry.addData("Distance", hw.colorSensor.getDistance(DistanceUnit.MM));
+
+
         }
     }
 
@@ -201,6 +203,8 @@ public class ArtifactSystem {
         startNextAutoShot();
     }
 
+    public boolean motifSeen = false;
+
     public void updateMotifFromAprilTag() {
         LLResult result = hw.limelight.getLatestResult();
         if (result != null && result.isValid()) {
@@ -208,15 +212,15 @@ public class ArtifactSystem {
             for (FiducialResult f : fiducials) {
                 int id = (int) f.getFiducialId();
                 switch (id) {
-                    case 1:
+                    case 21:
                         motif = new String[]{"G", "P", "P"};
                         motifSeen = true;
                         break;
-                    case 2:
+                    case 22:
                         motif = new String[]{"P", "G", "P"};
                         motifSeen = true;
                         break;
-                    case 3:
+                    case 23:
                         motif = new String[]{"P", "P", "G"};
                         motifSeen = true;
                         break;
@@ -554,6 +558,16 @@ public class ArtifactSystem {
                 if (!firedSlots[i] && Objects.equals(storedArtifacts[i], targetColor)) {
                     bestSlot = i;
                     break;
+                }
+            }
+
+            // Fallback for motifAutoFire: if target color not found, fire ANY remaining non-fired slot
+            if (bestSlot == -1) {
+                for (int i = 0; i < storedArtifacts.length; i++) {
+                    if (!firedSlots[i]) {
+                        bestSlot = i;
+                        break;
+                    }
                 }
             }
         } else {

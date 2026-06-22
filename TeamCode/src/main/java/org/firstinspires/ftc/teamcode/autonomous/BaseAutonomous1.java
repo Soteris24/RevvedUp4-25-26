@@ -18,6 +18,7 @@ import org.firstinspires.ftc.teamcode.subsystems.Sorter;
 public abstract class BaseAutonomous1 extends LinearOpMode {
     protected abstract Pose getStartPose();
     protected abstract Pose getShootingPose();
+    protected abstract Pose getMotifPose();
     protected abstract Pose getPos1();
     protected abstract Pose getPos1Forward();
     protected abstract Pose getPos2();
@@ -38,6 +39,7 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
 
     private Pose startPose;
     private Pose shootingPose;
+    private Pose motifPose;
     private Pose pos1;
     private Pose pos1Forward;
     private Pose pos2;
@@ -61,7 +63,7 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
     private ElapsedTime intakeSlowTimer = new ElapsedTime();
 
     enum AutoState {
-        INIT, GO_TO_SHOOTING_POS, ALIGN_LIMELIGHT, GO_TO_COLLECTION, COLLECT_FROM_GATE,
+        INIT, GO_TO_SHOOTING_POS, FACE_MOTIF, ALIGN_LIMELIGHT, GO_TO_COLLECTION, COLLECT_FROM_GATE,
         COLLECT_BALLS, RETURN_TO_SHOOT, RETURN_HOME, COMPLETE
     }
 
@@ -71,6 +73,7 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
     public void runOpMode() {
         startPose    = getStartPose();
         shootingPose = getShootingPose();
+        motifPose    = getMotifPose();
         pos1         = getPos1();
         pos1Forward  = getPos1Forward();
         pos2         = getPos2();
@@ -90,7 +93,7 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
 
         runtime.reset();
         follower.setMaxPower(0.8);
-        transitionToState(AutoState.GO_TO_SHOOTING_POS);
+        transitionToState(AutoState.FACE_MOTIF);
         currentCycle = 0;
 
         while (opModeIsActive()) {
@@ -102,9 +105,9 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
             intake.intake(false,false,currentTime);
             artifactSystem.update(currentTime);
 
-            if (!artifactSystem.motifSeen) {
-                artifactSystem.updateMotifFromAprilTag();
-            }
+//            if (!artifactSystem.motifSeen) {
+//                artifactSystem.updateMotifFromAprilTag();
+//            }
 
             // Detect new artifact collected
             if (artifactSystem.artifactCount > lastArtifactCount) {
@@ -115,6 +118,7 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
             lastArtifactCount = artifactSystem.artifactCount;
             switch (currentState) {
                 case GO_TO_SHOOTING_POS: runGoToShootingPos(); break;
+                case FACE_MOTIF:         runfaceMotif(); break;
                 case ALIGN_LIMELIGHT:    runAlignLimelight(); break;
                 case GO_TO_COLLECTION:   runGoToCollection();  break;
                 case COLLECT_BALLS:      runCollectBalls();    break;
@@ -213,6 +217,22 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
         if (stateTimer.seconds() > 20.0) {
             isMoving = false;
             transitionToState(AutoState.ALIGN_LIMELIGHT);
+        }
+    }
+
+    private void runfaceMotif() {
+        if (!stateStarted) {
+            stateStarted = true;
+            hw.pipelineSwitch(1);
+            artifactSystem.motifSeen = false;
+            goToPose(motifPose, "linear");
+        }
+
+        artifactSystem.updateMotifFromAprilTag();
+
+        if ((artifactSystem.motifSeen && hasReachedTarget()) || stateTimer.seconds() > 2.0) {
+            hw.pipelineSwitch(pipeline);
+            transitionToState(AutoState.GO_TO_SHOOTING_POS);
         }
     }
 
