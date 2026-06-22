@@ -181,7 +181,6 @@ public class ArtifactSystem {
 
         autoFire = true;
         motifAutoFire = false;
-        motifProgress = 0;
         shotsFired = 0;
         Arrays.fill(firedSlots, false);
         pendingShootColor = null;
@@ -195,8 +194,8 @@ public class ArtifactSystem {
 
         autoFire = true;
         motifAutoFire = true;
-        motifProgress = 0;
         shotsFired = 0;
+        motifProgress = 0;
         Arrays.fill(firedSlots, false);
         pendingShootColor = null;
         startNextAutoShot();
@@ -426,9 +425,6 @@ public class ArtifactSystem {
                     //transferStartTime = currentTime;
                 }
                 if (!transferInProgress && currentTime - transferStartTime > shootPhase2) {
-                    if (motifAutoFire) {
-                        motifProgress++;
-                    }
                     if (autoFire) {
                         startNextAutoShot();
                     } else if (artifactCount <= 0) {
@@ -488,7 +484,6 @@ public class ArtifactSystem {
         pendingShootColor = null;
         autoFire = false;
         motifAutoFire = false;
-        motifProgress = 0;
         inspectSlotIndex = 0;
         intakeSubState = IntakeSubState.IDLE;
         shootSubState = ShootSubState.IDLE;
@@ -508,7 +503,6 @@ public class ArtifactSystem {
         manualTransferActive = false;
         autoFire = false;
         motifAutoFire = false;
-        motifProgress = 0;
         shooter.setTargetVelRPM(rpm);
         hw.sorterTransfer.setPwmEnable();
     }
