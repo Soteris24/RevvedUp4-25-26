@@ -116,6 +116,10 @@ public abstract class BaseAutonomous extends LinearOpMode {
             intake.intake(false,false,currentTime);
             artifactSystem.update(currentTime);
 
+            if (getMode() == Mode.NINE_NO_GATE && !artifactSystem.motifSeen) {
+                artifactSystem.updateMotifFromAprilTag();
+            }
+
             if (runtime.seconds() > 29
                     && currentState != AutoState.RETURN_HOME
                     && currentState != AutoState.COMPLETE) {
@@ -233,7 +237,11 @@ public abstract class BaseAutonomous extends LinearOpMode {
         drivetrain.drive(0, 0, rotation);
 
         if (Math.abs(rotation) < 0.05 || stateTimer.seconds() > 1.0) {
-            artifactSystem.triggerAutoFire();
+            if (getMode() == Mode.NINE_NO_GATE) {
+                artifactSystem.triggerAutoMotifFire();
+            } else {
+                artifactSystem.triggerAutoFire();
+            }
             secondshoot = true;
             
             // Check if done shooting

@@ -101,6 +101,11 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
             shooter.setPIDFCoefficients();
             intake.intake(false,false,currentTime);
             artifactSystem.update(currentTime);
+
+            if (!artifactSystem.motifSeen) {
+                artifactSystem.updateMotifFromAprilTag();
+            }
+
             // Detect new artifact collected
             if (artifactSystem.artifactCount > lastArtifactCount) {
                 intakeSlowActive = true;
@@ -221,7 +226,7 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
         drivetrain.drive(0, 0, rotation);
 
         if (Math.abs(rotation) < 0.05 || stateTimer.seconds() > 1.0) {
-            artifactSystem.triggerAutoFire();
+            artifactSystem.triggerAutoMotifFire();
 
             // Check if done shooting
             if (!artifactSystem.isActivelyShooting() && artifactSystem.artifactCount == 0) {
