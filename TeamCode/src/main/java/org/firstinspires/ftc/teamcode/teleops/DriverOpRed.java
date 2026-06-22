@@ -46,6 +46,7 @@ public class DriverOpRed extends LinearOpMode {
 
     LatchedEdgeButton yButton = new LatchedEdgeButton(edgeLatchSeconds);
     LatchedEdgeButton xButton = new LatchedEdgeButton(edgeLatchSeconds);
+    LatchedEdgeButton aButton = new LatchedEdgeButton(edgeLatchSeconds);
     LatchedEdgeButton bButton = new LatchedEdgeButton(edgeLatchSeconds);
     LatchedEdgeButton lbButton = new LatchedEdgeButton(edgeLatchSeconds);
     LatchedEdgeButton rbButton = new LatchedEdgeButton(edgeLatchSeconds);
@@ -135,6 +136,7 @@ public class DriverOpRed extends LinearOpMode {
             boolean rightEdge = dpadRightButton.consume(currentTime);
             boolean yEdge = yButton.consume(currentTime);
             boolean xEdge = xButton.consume(currentTime);
+            boolean aEdge = aButton.consume(currentTime);
             boolean bEdge = bButton.consume(currentTime);
             boolean lbEdge = lbButton.consume(currentTime);
             boolean rbEdge = rbButton.consume(currentTime);
@@ -176,6 +178,9 @@ public class DriverOpRed extends LinearOpMode {
                 if (bEdge) {
                     artifactSystem.triggerAutoFire();
                 }
+                if (aEdge) {
+                    artifactSystem.triggerAutoMotifFire();
+                }
                 if (xEdge) {
                     artifactSystem.triggerManualShot(currentTime);
                 }
@@ -187,6 +192,9 @@ public class DriverOpRed extends LinearOpMode {
                 }
             }
 
+            if (!artifactSystem.motifSeen) {
+                artifactSystem.updateMotifFromAprilTag();
+            }
             artifactSystem.update(currentTime);
 
             follower.setMaxPower(1);
@@ -210,6 +218,7 @@ public class DriverOpRed extends LinearOpMode {
         dpadRightButton.update(gamepad2.dpad_right, currentTime);
         yButton.update(gamepad2.y, currentTime);
         xButton.update(gamepad2.x, currentTime);
+        aButton.update(gamepad2.a, currentTime);
         bButton.update(gamepad2.b, currentTime);
         lbButton.update(gamepad2.left_bumper, currentTime);
         rbButton.update(gamepad2.right_bumper, currentTime);

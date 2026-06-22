@@ -8,7 +8,10 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.teamcode.RobotHardware;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
+
+import com.qualcomm.hardware.limelightvision.LLResultTypes.FiducialResult;
 
 import kotlin.Unit;
 
@@ -61,6 +64,8 @@ public class ArtifactSystem {
     private double transferStartTime = 0;
     private boolean sorterMoved = false;
     private boolean autoFire = false;
+    private boolean motifAutoFire = false;
+    public boolean motifSeen = false;
 
     private double intakeRotateStartTime = 0;
     private double rotateStartTime = 0;
@@ -175,10 +180,52 @@ public class ArtifactSystem {
         }
 
         autoFire = true;
+        motifAutoFire = false;
+        motifProgress = 0;
         shotsFired = 0;
         Arrays.fill(firedSlots, false);
         pendingShootColor = null;
         startNextAutoShot();
+    }
+
+    public void triggerAutoMotifFire() {
+        if (robotState != RobotState.SHOOTING || shootSubState != ShootSubState.IDLE) {
+            return;
+        }
+
+        autoFire = true;
+        motifAutoFire = true;
+        motifProgress = 0;
+        shotsFired = 0;
+        Arrays.fill(firedSlots, false);
+        pendingShootColor = null;
+        startNextAutoShot();
+    }
+
+    public void updateMotifFromAprilTag() {
+        LLResult result = hw.limelight.getLatestResult();
+        if (result != null && result.isValid()) {
+            List<FiducialResult> fiducials = result.getFiducialResults();
+            for (FiducialResult f : fiducials) {
+                int id = (int) f.getFiducialId();
+                switch (id) {
+                    case 1:
+                        motif = new String[]{"G", "P", "P"};
+                        motifSeen = true;
+                        break;
+                    case 2:
+                        motif = new String[]{"P", "G", "P"};
+                        motifSeen = true;
+                        break;
+                    case 3:
+                        motif = new String[]{"P", "P", "G"};
+                        motifSeen = true;
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
     }
 
     public void triggerColorShot(String color) {
@@ -379,6 +426,9 @@ public class ArtifactSystem {
                     //transferStartTime = currentTime;
                 }
                 if (!transferInProgress && currentTime - transferStartTime > shootPhase2) {
+                    if (motifAutoFire) {
+                        motifProgress++;
+                    }
                     if (autoFire) {
                         startNextAutoShot();
                     } else if (artifactCount <= 0) {
@@ -437,6 +487,8 @@ public class ArtifactSystem {
         sorterMoved = false;
         pendingShootColor = null;
         autoFire = false;
+        motifAutoFire = false;
+        motifProgress = 0;
         inspectSlotIndex = 0;
         intakeSubState = IntakeSubState.IDLE;
         shootSubState = ShootSubState.IDLE;
@@ -455,6 +507,8 @@ public class ArtifactSystem {
         pendingShootColor = null;
         manualTransferActive = false;
         autoFire = false;
+        motifAutoFire = false;
+        motifProgress = 0;
         shooter.setTargetVelRPM(rpm);
         hw.sorterTransfer.setPwmEnable();
     }
@@ -492,20 +546,35 @@ public class ArtifactSystem {
     private void startNextAutoShot() {
         if (shotsFired >= 3) {
             autoFire = false;
+            motifAutoFire = false;
             enterIntakeState();
             return;
         }
 
         int bestSlot = -1;
-        // Priority 1: Artifacts that haven't been fired
-        for (int i = 0; i < storedArtifacts.length; i++) {
-            if (!firedSlots[i] && (Objects.equals(storedArtifacts[i], "G") || Objects.equals(storedArtifacts[i], "P"))) {
-                bestSlot = i;
-                break;
+
+        if (motifAutoFire) {
+            String targetColor = motif[motifProgress];
+            // Find a slot that has the targetColor and has not been fired
+            for (int i = 0; i < storedArtifacts.length; i++) {
+                if (!firedSlots[i] && Objects.equals(storedArtifacts[i], targetColor)) {
+                    bestSlot = i;
+                    break;
+                }
+            }
+        } else {
+            // Priority 1: Artifacts that haven't been fired (regular autofire)
+            for (int i = 0; i < storedArtifacts.length; i++) {
+                if (!firedSlots[i] && (Objects.equals(storedArtifacts[i], "G") || Objects.equals(storedArtifacts[i], "P"))) {
+                    bestSlot = i;
+                    break;
+                }
             }
         }
-        // Priority 2: Empty slots that haven't been fired
-        if (bestSlot == -1) {
+
+        // Priority 2: Empty slots that haven't been fired (for non-motif)
+        // regular autofire
+        if (bestSlot == -1 && !motifAutoFire) {
             for (int i = 0; i < storedArtifacts.length; i++) {
                 if (!firedSlots[i]) {
                     bestSlot = i;
@@ -516,6 +585,7 @@ public class ArtifactSystem {
 
         if (bestSlot == -1) {
             autoFire = false;
+            motifAutoFire = false;
             enterIntakeState();
             return;
         }

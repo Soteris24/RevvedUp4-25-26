@@ -73,7 +73,7 @@ public class Drivetrain {
     public double faceLimelightTarget() {
         LLResult result = hw.limelight.getLatestResult();
         
-        // 1. If camera has a valid target
+        // If camera has a valid target
         if (result != null && result.isValid()) {
             double tx = result.getTx(); 
             
@@ -85,7 +85,7 @@ public class Drivetrain {
                 dt = 0.01;
             }
 
-            // Only update "memory" when we are actually "on target" (e.g., < 1 degree)
+            // update odometry taget
             if (Math.abs(tx) < 1.0) {
                 lastKnownHeading = follower.getPose().getHeading() + Math.toRadians(tx);
             }
@@ -94,7 +94,7 @@ public class Drivetrain {
             return Math.max(-1.0, Math.min(1.0, output));
         }
         
-        // 2. If no target, use saved memory if available
+        // no target use odometry
         if (!Double.isNaN(lastKnownHeading)) {
             double currentHeading = follower.getPose().getHeading() + Math.toRadians(180);
             double headingError = lastKnownHeading - currentHeading;
