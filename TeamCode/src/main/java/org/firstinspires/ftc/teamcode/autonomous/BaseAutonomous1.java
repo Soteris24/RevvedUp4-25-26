@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.autonomous;
 
+import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -14,6 +15,8 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter2;
 import org.firstinspires.ftc.teamcode.subsystems.Sorter;
+
+import java.util.List;
 
 public abstract class BaseAutonomous1 extends LinearOpMode {
     protected abstract Pose getStartPose();
@@ -36,6 +39,7 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
 
     ElapsedTime runtime = new ElapsedTime();
     ElapsedTime stateTimer = new ElapsedTime();
+    List<LynxModule> allHubs;
 
     private Pose startPose;
     private Pose shootingPose;
@@ -84,10 +88,10 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
 
         initializeRobot();
 
-        telemetry.addData("Status", "Ready");
-        telemetry.addData("Artifacts preloaded", artifactSystem.artifactCount);
-        telemetry.update();
-
+//        telemetry.addData("Status", "Ready");
+//        telemetry.addData("Artifacts preloaded", artifactSystem.artifactCount);
+//        telemetry.update();
+        sorter.moveDegrees(-ArtifactSystem.initialOffsets[0]);
         waitForStart();
         if (!opModeIsActive()) return;
 
@@ -97,6 +101,13 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
         currentCycle = 0;
 
         while (opModeIsActive()) {
+
+            if (runtime.seconds() > 29
+                    && currentState != BaseAutonomous1.AutoState.RETURN_HOME
+                    && currentState != BaseAutonomous1.AutoState.COMPLETE) {
+                transitionToState(BaseAutonomous1.AutoState.RETURN_HOME);
+            }
+
             double currentTime = getRuntime();
 
             follower.update();
@@ -118,7 +129,7 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
             lastArtifactCount = artifactSystem.artifactCount;
             switch (currentState) {
                 case GO_TO_SHOOTING_POS: runGoToShootingPos(); break;
-                case FACE_MOTIF:         runfaceMotif(); break;
+                case FACE_MOTIF:         runFaceMotif(); break;
                 case ALIGN_LIMELIGHT:    runAlignLimelight(); break;
                 case GO_TO_COLLECTION:   runGoToCollection();  break;
                 case COLLECT_BALLS:      runCollectBalls();    break;
@@ -127,7 +138,7 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
                 case COMPLETE:           runComplete(); return;
             }
 
-            updateTelemetry();
+            //updateTelemetry();
             //sleep(10);
         }
     }
@@ -145,6 +156,10 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
         shooter       = new Shooter2(hw, false);
         artifactSystem = new ArtifactSystem(hw, telemetry, sorter, shooter, intake, false);
 
+        allHubs = hardwareMap.getAll(LynxModule.class);
+        for (LynxModule hub : allHubs) {
+            hub.setBulkCachingMode(LynxModule.BulkCachingMode.AUTO);
+        }
         artifactSystem.seedArtifacts("G", "P", "P");
     }
 
@@ -205,7 +220,7 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
             artifactSystem.seedArtifacts("G", "P", "P");
             intake.stop();
             goToPose(shootingPose, "linear");
-            artifactSystem.switchToShooting(ArtifactSystem.LONG_RPM, true);
+            artifactSystem.switchToShooting(ArtifactSystem.LONG_RPM, false);
         }
 
         boolean arrived = hasReachedTarget();
@@ -220,7 +235,7 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
         }
     }
 
-    private void runfaceMotif() {
+    private void runFaceMotif() {
         if (!stateStarted) {
             stateStarted = true;
             hw.pipelineSwitch(1);
@@ -299,7 +314,7 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
         // 2. After pause, speed up to 0.8 and resume movement
         if (intakeSlowActive && !hasResumed && intakeSlowTimer.seconds() > 0.5) {
             hasResumed = true;
-            follower.setMaxPower(0.8);
+            follower.setMaxPower(0.7);
             if      (currentCycle == 1) goToPose(pos1Forward, "linear");
             else if (currentCycle == 2) goToPose(humanPlayer2, "constant");
         }
@@ -342,6 +357,7 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
         if (!stateStarted) {
             stateStarted = true;
             artifactSystem.switchToIntake();
+            sorter.moveDegrees(ArtifactSystem.initialOffsets[0]);
             follower.setMaxPower(1.0);
             goToPose(pos1, "linear");
         }
@@ -365,7 +381,6 @@ public abstract class BaseAutonomous1 extends LinearOpMode {
         telemetry.addData("Status", "Complete");
         telemetry.addData("Total Runtime", "%.1f seconds", runtime.seconds());
         telemetry.addData("Cycles Completed", currentCycle);
-        telemetry.update();
     }
 
     private void transitionToState(AutoState newState) {

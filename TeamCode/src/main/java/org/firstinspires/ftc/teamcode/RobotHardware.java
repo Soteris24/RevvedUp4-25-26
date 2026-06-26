@@ -25,7 +25,7 @@ public class RobotHardware {
     public Limelight3A limelight;
     public ColorRangeSensor colorSensor, colorSensor2;
     public DistanceSensor distanceSensor;
-    public static double transferIdle = 0.02;
+    public static double transferIdle = 0.01;
     public static double transferPush = 0.35;
     public static double DEG_PER_SLOT = 120;
     public int sorterTarget = 0;

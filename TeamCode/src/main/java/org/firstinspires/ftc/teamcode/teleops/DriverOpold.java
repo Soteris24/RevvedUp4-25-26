@@ -101,11 +101,11 @@ public class DriverOpold extends LinearOpMode {
 
             if (l3 && !lastL3) {
                 mode = Mode.MANUAL;
-                telemetry.addData("[MODE]", "MANUAL (backup)");
+                // telemetry.addData("[MODE]", "MANUAL (backup)");
             }
             if (r3 && !lastR3) {
                 mode = Mode.DRIVER;
-                telemetry.addData("[MODE]", "DRIVER (auto)");
+                // telemetry.addData("[MODE]", "DRIVER (auto)");
             }
             lastL3 = l3;
             lastR3 = r3;

@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.autonomous;
 
+import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -14,6 +15,8 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter2;
 import org.firstinspires.ftc.teamcode.subsystems.Sorter;
+
+import java.util.List;
 
 public abstract class BaseAutonomous extends LinearOpMode {
     protected abstract Pose getStartPose();
@@ -72,6 +75,7 @@ public abstract class BaseAutonomous extends LinearOpMode {
     private boolean intakeSlowActive = false;
     private boolean hasResumed = false;
     private ElapsedTime intakeSlowTimer = new ElapsedTime();
+    List<LynxModule> allHubs;
 
     enum AutoState {
         INIT, GO_TO_SHOOTING_POS, FACE_MOTIF, ALIGN_LIMELIGHT, GO_TO_COLLECTION,
@@ -102,7 +106,7 @@ public abstract class BaseAutonomous extends LinearOpMode {
         telemetry.addData("Artifacts preloaded", artifactSystem.artifactCount);
         telemetry.update();
 
-        sorter.moveDegrees(55);
+        sorter.moveDegrees(-ArtifactSystem.initialOffsets[0]);
         waitForStart();
         if (!opModeIsActive()) return;
 
@@ -165,6 +169,10 @@ public abstract class BaseAutonomous extends LinearOpMode {
         shooter       = new Shooter2(hw, false);
         artifactSystem = new ArtifactSystem(hw, telemetry, sorter, shooter, intake, false);
 
+         allHubs = hardwareMap.getAll(LynxModule.class);
+        for (LynxModule hub : allHubs) {
+            hub.setBulkCachingMode(LynxModule.BulkCachingMode.AUTO);
+        }
         artifactSystem.seedArtifacts("G", "P", "P");
     }
 
@@ -324,7 +332,7 @@ public abstract class BaseAutonomous extends LinearOpMode {
         // 2. After pause, speed up to 0.8 and resume movement
         if (intakeSlowActive && !hasResumed && intakeSlowTimer.seconds() > 0.5) {
             hasResumed = true;
-            follower.setMaxPower(0.8);
+            follower.setMaxPower(0.7);
             if      (currentCycle == 1) goToPose(pos1Forward, "linear");
             else if (currentCycle == 2) goToPose(pos2Forward, "linear");
             else if (currentCycle == 3) goToPose(pos3Forward, "linear");
@@ -392,7 +400,7 @@ public abstract class BaseAutonomous extends LinearOpMode {
         if (!stateStarted) {
             stateStarted = true;
             artifactSystem.switchToIntake();
-            sorter.moveDegrees(-55);
+            sorter.moveDegrees(ArtifactSystem.initialOffsets[0]);
             follower.setMaxPower(1.0);
             goToPose(posgateready, "constant");
         }

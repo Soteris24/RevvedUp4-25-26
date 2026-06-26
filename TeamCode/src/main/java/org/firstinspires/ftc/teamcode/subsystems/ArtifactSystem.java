@@ -56,8 +56,8 @@ public class ArtifactSystem {
     private static final double CAMERA_HEIGHT = 38.5;  // Height of Limelight lens
     private static final double MOUNT_ANGLE = 12.0;   // Degrees tilted up from horizontal
 
-    private static final double[] DISTANCE_TABLE = {75, 165, 200, 320};
-    private static final double[] RPM_TABLE = {1900, 1955, 2040, 2450};
+    private static final double[] DISTANCE_TABLE = {75, 165, 200, 330};
+    private static final double[] RPM_TABLE = {1900, 2000, 2060, 2600};
 
     private String pendingShootColor = null;
     private boolean transferInProgress = false;
@@ -90,6 +90,8 @@ public class ArtifactSystem {
     private long lastSlotSwitchTime = 0;
     private static final long SLOT_DEBOUNCE_MS = 300;
     private int inspectSlotIndex = 0;
+    // CHANGED
+    public final static double[] initialOffsets = {-50, 70, 190}; // -55 65 185
 
     public ArtifactSystem(RobotHardware hw, Telemetry telemetry, Sorter sorter, Shooter2 shooter, Intake intake, boolean telemetryOn) {
         this.hw = hw;
@@ -112,28 +114,28 @@ public class ArtifactSystem {
                 break;
         }
 
-        if (telemetryOn) {
-            panelsTel.getTelemetry().addData("RobotState", robotState);
-            panelsTel.getTelemetry().addData("ShootSubState", shootSubState);
-            panelsTel.getTelemetry().addData("IntakeSubState", intakeSubState);
-            panelsTel.getTelemetry().addData("Artifacts", Arrays.toString(storedArtifacts));
-            panelsTel.getTelemetry().addData("ArtifactCount", artifactCount);
-            panelsTel.getTelemetry().addData("CurrentSlot", currentSlot);
-            panelsTel.getTelemetry().addData("TargetSlot", targetSlot);
-            panelsTel.getTelemetry().addData("RPM", rpm);
-            panelsTel.getTelemetry().addData("ManualTransferActive", manualTransferActive);
-
-            telemetry.addData("Artifacts", Arrays.toString(storedArtifacts));
-            telemetry.addData("Motif",Arrays.toString(motif));
-            telemetry.addData("CurrentSlot", currentSlot);
-            telemetry.addData("TargetSlot", targetSlot);
-            telemetry.addData("Red", hw.colorSensor.red());
-            telemetry.addData("Green", hw.colorSensor.green());
-            telemetry.addData("Blue", hw.colorSensor.blue());
-            telemetry.addData("Distance", hw.colorSensor.getDistance(DistanceUnit.MM));
-
-
-        }
+//        if (telemetryOn) {
+//            panelsTel.getTelemetry().addData("RobotState", robotState);
+//            panelsTel.getTelemetry().addData("ShootSubState", shootSubState);
+//            panelsTel.getTelemetry().addData("IntakeSubState", intakeSubState);
+//            panelsTel.getTelemetry().addData("Artifacts", Arrays.toString(storedArtifacts));
+//            panelsTel.getTelemetry().addData("ArtifactCount", artifactCount);
+//            panelsTel.getTelemetry().addData("CurrentSlot", currentSlot);
+//            panelsTel.getTelemetry().addData("TargetSlot", targetSlot);
+//            panelsTel.getTelemetry().addData("RPM", rpm);
+//            panelsTel.getTelemetry().addData("ManualTransferActive", manualTransferActive);
+//
+//            telemetry.addData("Artifacts", Arrays.toString(storedArtifacts));
+//            telemetry.addData("Motif",Arrays.toString(motif));
+//            telemetry.addData("CurrentSlot", currentSlot);
+//            telemetry.addData("TargetSlot", targetSlot);
+//            telemetry.addData("Red", hw.colorSensor.red());
+//            telemetry.addData("Green", hw.colorSensor.green());
+//            telemetry.addData("Blue", hw.colorSensor.blue());
+//            telemetry.addData("Distance", hw.colorSensor.getDistance(DistanceUnit.MM));
+//
+//
+//        }
     }
 
     public void switchToShooting(double targetRpm, boolean dynamic) {
@@ -480,7 +482,7 @@ public class ArtifactSystem {
         hw.sorterTransfer.setPosition(RobotHardware.transferIdle);
         hw.sorterTransfer.setPwmDisable();
         if (offSetApplied) {
-            sorter.moveDegrees(55);
+            sorter.moveDegrees(-ArtifactSystem.initialOffsets[0]);
         }
 
         transferInProgress = false;
@@ -526,7 +528,6 @@ public class ArtifactSystem {
         }
 
         if (!offSetApplied) {
-            double[] initialOffsets = {-55, 65, 185};
             sorter.moveDegrees(initialOffsets[slot]);
             offSetApplied = true;
             currentSlot = slot;

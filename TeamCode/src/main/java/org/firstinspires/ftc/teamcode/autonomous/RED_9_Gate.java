@@ -12,8 +12,8 @@ public class RED_9_Gate extends BaseAutonomous {
     }
 
     @Override protected Pose getStartPose()    { return new Pose(0, 0, Math.toRadians(43)); }
-    @Override protected Pose getShootingPose() { return new Pose(-25, -25, Math.toRadians(45)); }
-    @Override protected Pose getMotifPose()    { return new Pose(-25, -25, Math.toRadians(135)); }
+    @Override protected Pose getShootingPose() { return new Pose(-35, -35, Math.toRadians(45)); }
+    @Override protected Pose getMotifPose()    { return new Pose(-30, -30, Math.toRadians(135)); }
     @Override protected Pose getPos1()         { return new Pose(-20, -42, Math.toRadians(0)); }
     @Override protected Pose getPos1Forward()  { return new Pose(2, -42, Math.toRadians(0)); }
     @Override protected Pose getPos2()         { return new Pose(-15, -66, Math.toRadians(5)); }

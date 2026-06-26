@@ -1,6 +1,5 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
-import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.PIDCoefficients;
@@ -9,7 +8,6 @@ import org.firstinspires.ftc.teamcode.RobotHardware;
 import org.firstinspires.ftc.teamcode.utils.PIDController;
 import org.firstinspires.ftc.teamcode.utils.Convertor;
 
-@Configurable
 public class Sorter {
 
     public RobotHardware hw;
@@ -54,6 +52,7 @@ public class Sorter {
 
     public Sorter(RobotHardware hw, boolean telemetryOn) {
         this(hw, null, telemetryOn);
+
     }
 
     public Sorter(RobotHardware hw, Intake intake, boolean telemetryOn) {
@@ -62,11 +61,10 @@ public class Sorter {
         this.telemetryOn = telemetryOn;
 
         hw.sorter.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-
-        double voltage = hw.getBatteryVoltage();
-        double dynamicKD = 0.0000165 - (voltage - 12.0) * 0.000000125;
         sorterPID = new PIDController(new PIDCoefficients(kP, kI, kD));
 
+//        double voltage = hw.getBatteryVoltage();
+//        double dynamicKD = 0.0000165 - (voltage - 12.0) * 0.000000125;
 
         targetTicks = hw.sorter.getCurrentPosition();
         lastTime = System.currentTimeMillis();

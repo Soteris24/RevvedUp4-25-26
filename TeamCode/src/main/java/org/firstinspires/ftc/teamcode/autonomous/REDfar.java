@@ -20,7 +20,7 @@ public class REDfar extends BaseAutonomous1 {
 
     @Override
     protected Pose getMotifPose() {
-        return new Pose(6, -0.2, Math.toRadians(135));
+        return new Pose(6, -0.2, Math.toRadians(0));
     }
 
     @Override

@@ -68,7 +68,7 @@ public class DriverOpBlue extends LinearOpMode {
         drivetrain = new Drivetrain(hw, follower, false);
         intake         = new Intake(hw, false);
         sorter         = new Sorter(hw, intake, false);
-        shooter        = new Shooter2(hw, true);
+        shooter        = new Shooter2(hw, false);
         artifactSystem = new ArtifactSystem(hw, telemetry, sorter, shooter, intake, false);
         calc           = new ShooterCalculator(distanceTable, rpmTable); //NOT USED
 
@@ -78,19 +78,11 @@ public class DriverOpBlue extends LinearOpMode {
         }
 
         waitForStart();
-        sorter.moveDegrees(55);
+        sorter.moveDegrees(-ArtifactSystem.initialOffsets[0]);
         loopTimer.reset();
 
         while (opModeIsActive()) {
             double currentTime = getRuntime();
-
-            for (LynxModule hub : allHubs) {
-                hub.clearBulkCache();
-            }
-
-            shooter.setPIDFCoefficients();
-            telemetry.addData("Loop ms", loopTimer.milliseconds());
-            loopTimer.reset();
 
             if (gamepad1.x) {
                 artifactSystem.updateMotifFromAprilTag();
@@ -210,13 +202,15 @@ public class DriverOpBlue extends LinearOpMode {
             }
 
             artifactSystem.update(currentTime);
-
+            shooter.setPIDFCoefficients();
             follower.setMaxPower(1);
             sorter.update();
             follower.update();
             drivetrain.telemetryOn = false;
-            telemetry.addData("S",slowDrivetrain);
-            telemetry.update();
+            // telemetry.addData("S",slowDrivetrain);
+//            telemetry.addData("Loop ms", loopTimer.milliseconds());
+//            loopTimer.reset();
+//            telemetry.update();
         }
 
         drivetrain.stop();
